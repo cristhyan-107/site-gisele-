@@ -34,6 +34,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { LeadForm } from "@/components/LeadForm";
+import { trackWhatsappClick } from "@/lib/analytics";
 
 const lawyer = {
   initials: "DG",
@@ -233,11 +234,13 @@ function PremiumButton({
   className?: string;
 }) {
   const Icon = icon === "message" ? MessageCircle : ArrowRight;
+  const isWhatsappLink = href.includes("wa.me") || href.includes("whatsapp");
 
   return (
     <motion.a
       href={href}
       className={`premium-button premium-button--${variant} ${className}`}
+      onClick={isWhatsappLink ? trackWhatsappClick : undefined}
       whileHover={{ y: -2 }}
       whileTap={{ scale: 0.985 }}
     >
@@ -747,7 +750,11 @@ export function PremiumLanding() {
           </div>
 
           <div className="flex flex-col gap-4 text-sm font-semibold lg:items-end">
-            <a className="footer-link" href={whatsappHref}>
+            <a
+              className="footer-link"
+              href={whatsappHref}
+              onClick={trackWhatsappClick}
+            >
               WhatsApp
             </a>
             <Link className="footer-link" href="/politica-de-privacidade">

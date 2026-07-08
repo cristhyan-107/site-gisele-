@@ -3,14 +3,7 @@
 import { FormEvent, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { AlertCircle, CheckCircle2, Loader2, Send, ShieldCheck } from "lucide-react";
-
-type FormState = "idle" | "submitting" | "success" | "error";
-
-declare global {
-  interface Window {
-    dataLayer?: Array<Record<string, unknown>>;
-  }
-}
+import { getUrlAttribution, ORIGIN, pushDataLayer } from "@/lib/analytics";
 
 const initialForm = {
   nome: "",
@@ -27,20 +20,7 @@ const initialForm = {
 const fieldClass =
   "mt-2 w-full rounded-[1.15rem] border border-slate-200 bg-white px-4 py-3.5 text-[0.95rem] text-navy shadow-[0_1px_0_rgba(255,255,255,0.9),0_10px_28px_rgba(15,23,42,0.035)] outline-none transition duration-200 placeholder:text-slate-400 hover:border-slate-300 focus:border-gold focus:bg-white focus:shadow-[0_0_0_4px_rgba(167,125,53,0.14),0_16px_34px_rgba(15,23,42,0.06)]";
 
-function getUtms() {
-  const params = new URLSearchParams(window.location.search);
-
-  return {
-    utm_source: params.get("utm_source") ?? "",
-    utm_medium: params.get("utm_medium") ?? "",
-    utm_campaign: params.get("utm_campaign") ?? "",
-    utm_term: params.get("utm_term") ?? "",
-    utm_content: params.get("utm_content") ?? "",
-    gclid: params.get("gclid") ?? "",
-    fbclid: params.get("fbclid") ?? "",
-    landing_page: window.location.href,
-  };
-}
+type FormState = "idle" | "submitting" | "success" | "error";
 
 export function LeadForm() {
   const [form, setForm] = useState(initialForm);
@@ -71,11 +51,13 @@ export function LeadForm() {
 
     setState("submitting");
 
+    const attribution = getUrlAttribution();
     const payload = {
       ...form,
       timestamp: new Date().toISOString(),
-      origem: "site_google_ads",
-      utms: getUtms(),
+      origem: ORIGIN,
+      ...attribution,
+      utms: attribution,
     };
 
     try {
@@ -91,8 +73,14 @@ export function LeadForm() {
         throw new Error("Lead request failed");
       }
 
-      window.dataLayer = window.dataLayer ?? [];
-      window.dataLayer.push({ event: "lead_form_submit" });
+      pushDataLayer({
+        event: "lead_form_submit",
+        origem: ORIGIN,
+        plataforma: form.plataforma,
+        conteudo_no_ar: form.conteudo_no_ar,
+        possui_provas: form.possui_provas,
+        ...attribution,
+      });
 
       setForm(initialForm);
       setState("success");
