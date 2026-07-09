@@ -4,9 +4,9 @@ import "./globals.css";
 const gtmId = process.env.NEXT_PUBLIC_GTM_ID?.trim() || "GTM-MXH4SQ8C";
 
 export const metadata: Metadata = {
-  title: "Defesa jurídica para exposição e ataques na internet",
+  title: "Dra. Gisele Gabriel | Advogada em Direito Digital e Reputação Online",
   description:
-    "Atuação jurídica para vítimas de conteúdos ofensivos, perfis falsos, difamação, deepfakes e divulgação indevida de informações pessoais.",
+    "Atuação jurídica em casos de difamação, perfil falso, fake news, uso indevido de imagem, ataques em redes sociais e prejuízos à reputação na internet.",
 };
 
 export default function RootLayout({

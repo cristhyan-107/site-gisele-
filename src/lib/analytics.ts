@@ -23,6 +23,7 @@ export function getUrlAttribution() {
       gclid: "",
       fbclid: "",
       landing_page: "",
+      page_url: "",
     };
   }
 
@@ -36,7 +37,8 @@ export function getUrlAttribution() {
     utm_term: params.get("utm_term") ?? "",
     gclid: params.get("gclid") ?? "",
     fbclid: params.get("fbclid") ?? "",
-    landing_page: window.location.href,
+    landing_page: window.location.pathname,
+    page_url: window.location.href,
   };
 }
 
@@ -55,4 +57,3 @@ export function trackWhatsappClick() {
     origem: ORIGIN,
   });
 }
-
