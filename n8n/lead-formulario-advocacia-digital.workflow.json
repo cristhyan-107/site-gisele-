@@ -1,0 +1,533 @@
+{
+  "name": "Lead Formulário | Advocacia Digital",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "Workflow para leads jurídicos vindos da landing page.\n\nAntes de ativar:\n1. Conecte as credenciais placeholder de OpenAI, Google Sheets e Gmail.\n2. No Google Sheets, informe o ID/URL da planilha \"Leads - Gisele Advocacia Digital\" e confirme a aba \"Leads\".\n3. No Gmail, altere o destinatário do aviso.\n4. Use a URL de produção do Webhook como N8N_WEBHOOK_URL no site.",
+        "height": 260,
+        "width": 420,
+        "color": 5
+      },
+      "id": "5ac82750-3b19-4a6d-831a-6a25c9bd3814",
+      "name": "Notas de Configuração",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -760,
+        -260
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lead-formulario-advocacia-digital",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "be0fda5d-6203-48ab-8589-9f5d92f6fc23",
+      "name": "Webhook | Receber Lead",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -720,
+        160
+      ],
+      "webhookId": "lead-formulario-advocacia-digital"
+    },
+    {
+      "parameters": {
+        "jsCode": "const source = $json.body ?? $json;\n\nconst fields = [\n  'nome',\n  'whatsapp',\n  'cidade_estado',\n  'plataforma',\n  'conteudo_no_ar',\n  'possui_provas',\n  'prejuizo',\n  'relato',\n  'origem',\n  'utm_source',\n  'utm_medium',\n  'utm_campaign',\n  'utm_content',\n  'utm_term',\n];\n\nconst data = {};\nfor (const field of fields) {\n  const value = source[field];\n  data[field] = value === undefined || value === null ? '' : String(value).trim();\n}\n\ndata.data_entrada = new Date().toISOString();\ndata.whatsapp = data.whatsapp.replace(/\\D/g, '');\ndata.status = 'Novo';\ndata.origem = data.origem || 'site_google_ads';\n\nconst missing = ['nome', 'whatsapp', 'relato'].filter((field) => !data[field]);\n\nif (missing.length > 0) {\n  return [\n    {\n      json: {\n        success: false,\n        validation_error: true,\n        missing_fields: missing,\n        message: 'Algumas informações obrigatórias não foram enviadas. Verifique nome, WhatsApp e relato.',\n        data_entrada: data.data_entrada,\n      },\n    },\n  ];\n}\n\nreturn [\n  {\n    json: {\n      success: true,\n      ...data,\n    },\n  },\n];"
+      },
+      "id": "3a4d7819-2358-4f07-a6e6-8fc72eb9a8e7",
+      "name": "Code | Normalizar Dados",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -480,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.success }}",
+              "value2": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "5036867a-471f-40b7-8d23-edc2db3af35e",
+      "name": "IF | Dados Obrigatórios Válidos?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -240,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "operation": "message",
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "Você auxilia uma equipe de advocacia em triagem interna de leads de direito digital. Não dê parecer jurídico. Não prometa resultado. Não afirme que cabe indenização. Não diga que existe direito garantido. Não prometa remoção de conteúdo. Não prometa liminar. Não fale honorários. Apenas resuma e classifique para análise humana."
+            },
+            {
+              "role": "user",
+              "content": "=Analise o lead abaixo e retorne exclusivamente JSON válido, sem markdown, no formato exato: {\"resumo_ia\":\"\",\"classificacao\":\"\",\"urgencia\":\"\",\"tipo_caso\":\"\",\"proximo_passo\":\"\"}\\n\\nCritérios:\\n- classificacao deve ser: quente, medio ou frio.\\n- urgencia deve ser: alta, media ou baixa.\\n- tipo_caso deve resumir o assunto principal.\\n- proximo_passo deve orientar apenas triagem humana e organização de provas, sem parecer jurídico.\\n\\nDados do lead:\\nNome: {{ $json.nome }}\\nWhatsApp: {{ $json.whatsapp }}\\nCidade/Estado: {{ $json.cidade_estado }}\\nPlataforma: {{ $json.plataforma }}\\nConteúdo no ar: {{ $json.conteudo_no_ar }}\\nPossui provas: {{ $json.possui_provas }}\\nPrejuízo: {{ $json.prejuizo }}\\nRelato: {{ $json.relato }}\\nOrigem: {{ $json.origem }}\\nCampanha: {{ $json.utm_campaign }}"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "id": "e8186025-401a-4fc7-bacf-4b7470f0e1f8",
+      "name": "OpenAI | Analisar Lead",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        40,
+        60
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "OPENAI_CREDENTIAL_ID_PLACEHOLDER",
+          "name": "OpenAI API Placeholder"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const lead = $items('Code | Normalizar Dados', 0, 0)[0]?.json ?? {};\nconst aiRaw = $input.first().json;\n\nfunction extractAiPayload(raw) {\n  if (raw && raw.resumo_ia) {\n    return raw;\n  }\n\n  let content = raw?.message?.content\n    ?? raw?.choices?.[0]?.message?.content\n    ?? raw?.data?.choices?.[0]?.message?.content\n    ?? raw?.text\n    ?? raw?.output\n    ?? raw?.content\n    ?? '';\n\n  if (typeof content !== 'string') {\n    content = JSON.stringify(content);\n  }\n\n  const cleaned = content.replace(/```json/gi, '').replace(/```/g, '').trim();\n\n  try {\n    return JSON.parse(cleaned);\n  } catch (error) {\n    return {\n      resumo_ia: cleaned || 'Resumo não retornado pela IA.',\n      classificacao: 'medio',\n      urgencia: 'media',\n      tipo_caso: 'Triagem digital',\n      proximo_passo: 'Revisar manualmente as informações e solicitar documentos ou provas complementares, se necessário.',\n    };\n  }\n}\n\nconst ai = extractAiPayload(aiRaw);\nconst allowedClassificacao = ['quente', 'medio', 'frio'];\nconst allowedUrgencia = ['alta', 'media', 'baixa'];\n\nreturn [\n  {\n    json: {\n      data_entrada: lead.data_entrada ?? new Date().toISOString(),\n      nome: lead.nome ?? '',\n      whatsapp: lead.whatsapp ?? '',\n      cidade_estado: lead.cidade_estado ?? '',\n      plataforma: lead.plataforma ?? '',\n      conteudo_no_ar: lead.conteudo_no_ar ?? '',\n      possui_provas: lead.possui_provas ?? '',\n      prejuizo: lead.prejuizo ?? '',\n      relato: lead.relato ?? '',\n      origem: lead.origem ?? 'site_google_ads',\n      utm_source: lead.utm_source ?? '',\n      utm_medium: lead.utm_medium ?? '',\n      utm_campaign: lead.utm_campaign ?? '',\n      utm_content: lead.utm_content ?? '',\n      utm_term: lead.utm_term ?? '',\n      resumo_ia: ai.resumo_ia ?? '',\n      classificacao: allowedClassificacao.includes(ai.classificacao) ? ai.classificacao : 'medio',\n      urgencia: allowedUrgencia.includes(ai.urgencia) ? ai.urgencia : 'media',\n      tipo_caso: ai.tipo_caso ?? '',\n      proximo_passo: ai.proximo_passo ?? '',\n      status: lead.status ?? 'Novo',\n    },\n  },\n];"
+      },
+      "id": "fe585be5-019b-4d2e-a0ec-f73ec4167f25",
+      "name": "Code | Preparar Linha Google Sheets",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        300,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "COLOQUE_AQUI_O_ID_DA_PLANILHA_LEADS_GISELE_ADVOCACIA_DIGITAL",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Leads",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "data_entrada": "={{ $json.data_entrada }}",
+            "nome": "={{ $json.nome }}",
+            "whatsapp": "={{ $json.whatsapp }}",
+            "cidade_estado": "={{ $json.cidade_estado }}",
+            "plataforma": "={{ $json.plataforma }}",
+            "conteudo_no_ar": "={{ $json.conteudo_no_ar }}",
+            "possui_provas": "={{ $json.possui_provas }}",
+            "prejuizo": "={{ $json.prejuizo }}",
+            "relato": "={{ $json.relato }}",
+            "origem": "={{ $json.origem }}",
+            "utm_source": "={{ $json.utm_source }}",
+            "utm_medium": "={{ $json.utm_medium }}",
+            "utm_campaign": "={{ $json.utm_campaign }}",
+            "utm_content": "={{ $json.utm_content }}",
+            "utm_term": "={{ $json.utm_term }}",
+            "resumo_ia": "={{ $json.resumo_ia }}",
+            "classificacao": "={{ $json.classificacao }}",
+            "urgencia": "={{ $json.urgencia }}",
+            "tipo_caso": "={{ $json.tipo_caso }}",
+            "proximo_passo": "={{ $json.proximo_passo }}",
+            "status": "={{ $json.status }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "data_entrada",
+              "displayName": "data_entrada",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "nome",
+              "displayName": "nome",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "whatsapp",
+              "displayName": "whatsapp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "cidade_estado",
+              "displayName": "cidade_estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "plataforma",
+              "displayName": "plataforma",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "conteudo_no_ar",
+              "displayName": "conteudo_no_ar",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "possui_provas",
+              "displayName": "possui_provas",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "prejuizo",
+              "displayName": "prejuizo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "relato",
+              "displayName": "relato",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "origem",
+              "displayName": "origem",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "utm_source",
+              "displayName": "utm_source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "utm_medium",
+              "displayName": "utm_medium",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "utm_campaign",
+              "displayName": "utm_campaign",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "utm_content",
+              "displayName": "utm_content",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "utm_term",
+              "displayName": "utm_term",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "resumo_ia",
+              "displayName": "resumo_ia",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "classificacao",
+              "displayName": "classificacao",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "urgencia",
+              "displayName": "urgencia",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "tipo_caso",
+              "displayName": "tipo_caso",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "proximo_passo",
+              "displayName": "proximo_passo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "f5d6f463-5e0b-447c-9cbb-b3ad6f26d723",
+      "name": "Google Sheets | Salvar Lead",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        580,
+        60
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "GOOGLE_SHEETS_CREDENTIAL_ID_PLACEHOLDER",
+          "name": "Google Sheets OAuth2 Placeholder"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "sendTo": "destinatario@seudominio.com.br",
+        "subject": "=Novo lead jurídico digital - {{ $('Code | Preparar Linha Google Sheets').first().json.classificacao }}",
+        "message": "=NOVO LEAD - ADVOCACIA DIGITAL\\n\\nNome: {{ $('Code | Preparar Linha Google Sheets').first().json.nome }}\\nWhatsApp: {{ $('Code | Preparar Linha Google Sheets').first().json.whatsapp }}\\nCidade/Estado: {{ $('Code | Preparar Linha Google Sheets').first().json.cidade_estado }}\\nPlataforma: {{ $('Code | Preparar Linha Google Sheets').first().json.plataforma }}\\nConteúdo no ar: {{ $('Code | Preparar Linha Google Sheets').first().json.conteudo_no_ar }}\\nPossui provas: {{ $('Code | Preparar Linha Google Sheets').first().json.possui_provas }}\\nPrejuízo: {{ $('Code | Preparar Linha Google Sheets').first().json.prejuizo }}\\nOrigem: {{ $('Code | Preparar Linha Google Sheets').first().json.origem }}\\nCampanha: {{ $('Code | Preparar Linha Google Sheets').first().json.utm_campaign }}\\n\\nResumo da IA:\\n{{ $('Code | Preparar Linha Google Sheets').first().json.resumo_ia }}\\n\\nClassificação: {{ $('Code | Preparar Linha Google Sheets').first().json.classificacao }}\\nUrgência: {{ $('Code | Preparar Linha Google Sheets').first().json.urgencia }}\\nTipo de caso: {{ $('Code | Preparar Linha Google Sheets').first().json.tipo_caso }}\\nPróximo passo: {{ $('Code | Preparar Linha Google Sheets').first().json.proximo_passo }}",
+        "options": {}
+      },
+      "id": "2e856e3d-e059-44ab-a620-e7a44500fae3",
+      "name": "Gmail | Avisar Novo Lead",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        860,
+        60
+      ],
+      "webhookId": "gmail-aviso-lead-advocacia-digital",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "GMAIL_CREDENTIAL_ID_PLACEHOLDER",
+          "name": "Gmail OAuth2 Placeholder"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"message\": \"Informações recebidas com sucesso. A equipe responsável dará continuidade ao atendimento.\"\n}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "00470f9a-215e-4391-9ec0-4d6e1e6314aa",
+      "name": "Respond to Webhook | Sucesso",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1140,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": false,\n  \"message\": \"Algumas informações obrigatórias não foram enviadas. Verifique nome, WhatsApp e relato.\"\n}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "7c037b77-6970-48d6-a3ea-8e0f77a8568b",
+      "name": "Respond to Webhook | Erro Validação",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        40,
+        300
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook | Receber Lead": {
+      "main": [
+        [
+          {
+            "node": "Code | Normalizar Dados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code | Normalizar Dados": {
+      "main": [
+        [
+          {
+            "node": "IF | Dados Obrigatórios Válidos?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF | Dados Obrigatórios Válidos?": {
+      "main": [
+        [
+          {
+            "node": "OpenAI | Analisar Lead",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook | Erro Validação",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI | Analisar Lead": {
+      "main": [
+        [
+          {
+            "node": "Code | Preparar Linha Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code | Preparar Linha Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets | Salvar Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets | Salvar Lead": {
+      "main": [
+        [
+          {
+            "node": "Gmail | Avisar Novo Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail | Avisar Novo Lead": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook | Sucesso",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "e79bc159-57db-4af5-bfc6-549c6e5139b1",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "id": "lead-formulario-advocacia-digital",
+  "tags": []
+}
