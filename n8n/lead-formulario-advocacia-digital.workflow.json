@@ -1,50 +1,50 @@
 {
-  "name": "Lead Formulário | Advocacia Digital",
+  "name": "Lead Formulário | Advocacia Digital V2",
   "nodes": [
     {
       "parameters": {
-        "content": "Workflow para leads jurídicos vindos da landing page.\n\nAntes de ativar:\n1. Conecte as credenciais placeholder de OpenAI, Google Sheets e Gmail.\n2. No Google Sheets, informe o ID/URL da planilha \"Leads - Gisele Advocacia Digital\" e confirme a aba \"Leads\".\n3. No Gmail, altere o destinatário do aviso.\n4. Use a URL de produção do Webhook como N8N_WEBHOOK_URL no site.",
-        "height": 260,
-        "width": 420,
+        "content": "Workflow V2 para leads da landing page de advocacia digital.\n\nConfiguração antes de ativar:\n1. Conecte as credenciais de OpenAI, Google Sheets e Gmail nos nós com placeholder.\n2. No Google Sheets, informe a planilha \"Leads - Gisele Advocacia Digital\".\n3. Garanta que existam as abas: Leads, Mensagens, Erros e Dashboard.\n4. Na aba Leads, adicione as colunas extras solicitadas: lead_id, plataforma, resumo_ia, proximo_passo, duplicado, UTMs, gclid, fbclid, page_url, user_agent e ip.\n5. Ajuste o destinatário do Gmail.\n6. Use a URL de produção do webhook /lead-formulario-advocacia-digital-v2 como N8N_WEBHOOK_URL no site.",
+        "height": 320,
+        "width": 500,
         "color": 5
       },
-      "id": "5ac82750-3b19-4a6d-831a-6a25c9bd3814",
+      "id": "c42d7d4e-8a9e-43f8-a9fb-1e718ac97c25",
       "name": "Notas de Configuração",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -760,
-        -260
+        -960,
+        -300
       ]
     },
     {
       "parameters": {
         "httpMethod": "POST",
-        "path": "lead-formulario-advocacia-digital",
+        "path": "lead-formulario-advocacia-digital-v2",
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "be0fda5d-6203-48ab-8589-9f5d92f6fc23",
-      "name": "Webhook | Receber Lead",
+      "id": "6b6c5d63-2210-4cc5-a7d2-1f2bb98d3169",
+      "name": "Webhook | Receber Lead V2",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        -720,
-        160
+        -920,
+        140
       ],
-      "webhookId": "lead-formulario-advocacia-digital"
+      "webhookId": "lead-formulario-advocacia-digital-v2"
     },
     {
       "parameters": {
-        "jsCode": "const source = $json.body ?? $json;\n\nconst fields = [\n  'nome',\n  'whatsapp',\n  'cidade_estado',\n  'plataforma',\n  'conteudo_no_ar',\n  'possui_provas',\n  'prejuizo',\n  'relato',\n  'origem',\n  'utm_source',\n  'utm_medium',\n  'utm_campaign',\n  'utm_content',\n  'utm_term',\n];\n\nconst data = {};\nfor (const field of fields) {\n  const value = source[field];\n  data[field] = value === undefined || value === null ? '' : String(value).trim();\n}\n\ndata.data_entrada = new Date().toISOString();\ndata.whatsapp = data.whatsapp.replace(/\\D/g, '');\ndata.status = 'Novo';\ndata.origem = data.origem || 'site_google_ads';\n\nconst missing = ['nome', 'whatsapp', 'relato'].filter((field) => !data[field]);\n\nif (missing.length > 0) {\n  return [\n    {\n      json: {\n        success: false,\n        validation_error: true,\n        missing_fields: missing,\n        message: 'Algumas informações obrigatórias não foram enviadas. Verifique nome, WhatsApp e relato.',\n        data_entrada: data.data_entrada,\n      },\n    },\n  ];\n}\n\nreturn [\n  {\n    json: {\n      success: true,\n      ...data,\n    },\n  },\n];"
+        "jsCode": "const source = $json.body ?? $json;\nconst headers = $json.headers ?? {};\nconst nestedUtms = source.utms ?? {};\n\nfunction clean(value) {\n  if (value === undefined || value === null) return '';\n  return String(value).trim();\n}\n\nfunction normalizeText(value) {\n  return clean(value)\n    .normalize('NFD')\n    .replace(/[\\u0300-\\u036f]/g, '')\n    .toLowerCase();\n}\n\nfunction normalizeYesNo(value) {\n  const normalized = normalizeText(value);\n  if (!normalized) return '';\n  if (['sim', 's', 'yes', 'y'].includes(normalized)) return 'Sim';\n  if (['nao', 'n', 'no'].includes(normalized)) return 'Não';\n  if (normalized.includes('parcial')) return 'Parcial';\n  if (normalized.includes('nao sei') || normalized.includes('não sei') || normalized.includes('nao_sei')) return 'Não sei';\n  return clean(value);\n}\n\nfunction normalizePlatform(value) {\n  const normalized = normalizeText(value);\n  if (!normalized) return '';\n  if (normalized.includes('tiktok')) return 'TikTok';\n  if (normalized.includes('instagram')) return 'Instagram';\n  if (normalized.includes('facebook')) return 'Facebook';\n  if (normalized.includes('whatsapp') || normalized.includes('telegram')) return 'WhatsApp';\n  if (normalized.includes('youtube')) return 'YouTube';\n  if (normalized === 'x' || normalized.includes('twitter')) return 'X/Twitter';\n  if (normalized.includes('linkedin')) return 'LinkedIn';\n  return 'Outro';\n}\n\nfunction saoPauloTimestamp(date = new Date()) {\n  return new Intl.DateTimeFormat('sv-SE', {\n    timeZone: 'America/Sao_Paulo',\n    year: 'numeric',\n    month: '2-digit',\n    day: '2-digit',\n    hour: '2-digit',\n    minute: '2-digit',\n    second: '2-digit',\n    hour12: false,\n  }).format(date).replace(' ', 'T');\n}\n\nfunction makeLeadId(phone, timestamp) {\n  const stamp = timestamp.replace(/\\D/g, '').slice(0, 14);\n  const last4 = (phone || '0000').slice(-4).padStart(4, '0');\n  const random = Math.random().toString(36).slice(2, 7).toUpperCase();\n  return `LD-${stamp.slice(0, 8)}-${stamp.slice(8, 14)}-${last4}-${random}`;\n}\n\nconst cidadeEstado = clean(source.cidade_estado);\nconst cidadeEstadoParts = cidadeEstado.includes('/') ? cidadeEstado.split('/') : [];\nconst whatsapp = clean(source.whatsapp).replace(/\\D/g, '');\nconst dataEntrada = saoPauloTimestamp();\nconst payload = {\n  lead_id: makeLeadId(whatsapp, dataEntrada),\n  data_entrada: dataEntrada,\n  nome: clean(source.nome),\n  whatsapp,\n  email: clean(source.email),\n  origem: clean(source.origem) || 'site_google_ads',\n  plataforma: normalizePlatform(source.plataforma),\n  conteudo_no_ar: normalizeYesNo(source.conteudo_no_ar),\n  possui_provas: normalizeYesNo(source.possui_provas),\n  prejuizo: clean(source.prejuizo),\n  data_ocorrido: clean(source.data_ocorrido),\n  link_perfil: clean(source.link_perfil),\n  detalhes_caso: clean(source.detalhes_caso || source.relato),\n  cep: clean(source.cep),\n  cidade: clean(source.cidade) || clean(cidadeEstadoParts[0]),\n  estado: clean(source.estado) || clean(cidadeEstadoParts[1]),\n  profissao: clean(source.profissao),\n  renda_estimada: clean(source.renda_estimada),\n  classificacao: '',\n  urgencia: '',\n  tipo_caso: '',\n  resumo_ia: '',\n  proximo_passo: '',\n  responsavel: '',\n  duplicado: 'Não',\n  utm_source: clean(source.utm_source || nestedUtms.utm_source),\n  utm_medium: clean(source.utm_medium || nestedUtms.utm_medium),\n  utm_campaign: clean(source.utm_campaign || nestedUtms.utm_campaign),\n  utm_content: clean(source.utm_content || nestedUtms.utm_content),\n  utm_term: clean(source.utm_term || nestedUtms.utm_term),\n  gclid: clean(source.gclid || nestedUtms.gclid),\n  fbclid: clean(source.fbclid || nestedUtms.fbclid),\n  page_url: clean(source.page_url || source.landing_page || nestedUtms.landing_page),\n  user_agent: clean(source.user_agent || headers['user-agent']),\n  ip: clean(source.ip || headers['x-forwarded-for'] || headers['x-real-ip']),\n  status: 'Novo',\n};\n\nconst missing = ['nome', 'whatsapp', 'detalhes_caso'].filter((field) => !payload[field]);\n\nif (missing.length > 0) {\n  return [\n    {\n      json: {\n        success: false,\n        validation_error: true,\n        missing_fields: missing,\n        data: dataEntrada,\n        origem: payload.origem,\n        tipo_erro: 'validacao_campos_obrigatorios',\n        descricao: 'Campos obrigatórios ausentes: ' + missing.join(', '),\n        payload: JSON.stringify(source),\n        status_resolucao: 'Pendente',\n        data_resolucao: '',\n        message: 'Algumas informações obrigatórias não foram enviadas. Verifique nome, WhatsApp e relato.',\n      },\n    },\n  ];\n}\n\nreturn [{ json: { success: true, ...payload } }];"
       },
-      "id": "3a4d7819-2358-4f07-a6e6-8fc72eb9a8e7",
+      "id": "f8e5ef54-2e31-4fa0-ae9a-f47fdc7697ce",
       "name": "Code | Normalizar Dados",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -480,
-        160
+        -680,
+        140
       ]
     },
     {
@@ -56,16 +56,204 @@
               "value2": true
             }
           ]
-        },
-        "options": {}
+        }
       },
-      "id": "5036867a-471f-40b7-8d23-edc2db3af35e",
+      "id": "19f71f18-5477-4b7c-a98c-682b30cb5157",
       "name": "IF | Dados Obrigatórios Válidos?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [
-        -240,
-        160
+        -440,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "COLOQUE_AQUI_O_ID_DA_PLANILHA_LEADS_GISELE_ADVOCACIA_DIGITAL",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Erros",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "4093b0c5-d77e-438c-8bd7-3825d848ddc2",
+      "name": "Google Sheets | Registrar Erro Validação",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -180,
+        360
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "GOOGLE_SHEETS_CREDENTIAL_ID_PLACEHOLDER",
+          "name": "Google Sheets OAuth2 Placeholder"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": false,\n  \"message\": \"Algumas informações obrigatórias não foram enviadas. Verifique nome, WhatsApp e relato.\"\n}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "4df8eb6b-5a3f-4783-9136-30177640d383",
+      "name": "Respond to Webhook | Erro Validação",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        80,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "COLOQUE_AQUI_O_ID_DA_PLANILHA_LEADS_GISELE_ADVOCACIA_DIGITAL",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Leads",
+          "mode": "name"
+        },
+        "options": {
+          "returnAll": true
+        }
+      },
+      "id": "cc4aff25-c540-4cb5-9b2a-7d8322347779",
+      "name": "Google Sheets | Buscar Leads por WhatsApp",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -180,
+        40
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "GOOGLE_SHEETS_CREDENTIAL_ID_PLACEHOLDER",
+          "name": "Google Sheets OAuth2 Placeholder"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const lead = $items('Code | Normalizar Dados', 0, 0)[0].json;\nconst rows = $input.all().map((item) => item.json ?? {});\nconst duplicateRow = rows.find((row) => String(row.whatsapp ?? '').replace(/\\D/g, '') === lead.whatsapp);\n\nif (duplicateRow) {\n  return [\n    {\n      json: {\n        ...lead,\n        duplicado: 'Sim',\n        duplicate: true,\n        duplicate_existing_lead_id: duplicateRow.lead_id ?? '',\n        duplicate_message: 'Suas informações já foram recebidas anteriormente. A equipe responsável dará continuidade ao atendimento.',\n      },\n    },\n  ];\n}\n\nreturn [{ json: { ...lead, duplicate: false } }];"
+      },
+      "id": "393c0cf5-dbc5-4831-901b-07ee0cf2149c",
+      "name": "Code | Verificar Duplicidade",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        80,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.duplicate }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "018f742e-cfe0-419e-a8d2-4c9880de7cb0",
+      "name": "IF | Lead Duplicado?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        340,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      data: new Date().toISOString(),\n      lead_id: $json.lead_id,\n      remetente: 'site',\n      destinatario: 'equipe',\n      mensagem: `Lead duplicado recebido para o WhatsApp ${$json.whatsapp}. Lead original: ${$json.duplicate_existing_lead_id || 'não identificado'}.`,\n      status: 'duplicado',\n      tipo_mensagem: 'duplicidade',\n      canal: 'webhook',\n    },\n  },\n];"
+      },
+      "id": "cae8f216-e07c-40e4-b3d4-9850bf44656d",
+      "name": "Code | Preparar Log Duplicidade",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        620,
+        -140
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "COLOQUE_AQUI_O_ID_DA_PLANILHA_LEADS_GISELE_ADVOCACIA_DIGITAL",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Mensagens",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "d0f77fce-4263-4faa-8823-954d4fa57a93",
+      "name": "Google Sheets | Registrar Duplicidade",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        880,
+        -140
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "GOOGLE_SHEETS_CREDENTIAL_ID_PLACEHOLDER",
+          "name": "Google Sheets OAuth2 Placeholder"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"duplicate\": true,\n  \"message\": \"Suas informações já foram recebidas anteriormente. A equipe responsável dará continuidade ao atendimento.\"\n}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "05234ff2-b6a7-40f1-b446-ccce42619c47",
+      "name": "Respond to Webhook | Duplicado",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1140,
+        -140
       ]
     },
     {
@@ -82,11 +270,11 @@
           "values": [
             {
               "role": "system",
-              "content": "Você auxilia uma equipe de advocacia em triagem interna de leads de direito digital. Não dê parecer jurídico. Não prometa resultado. Não afirme que cabe indenização. Não diga que existe direito garantido. Não prometa remoção de conteúdo. Não prometa liminar. Não fale honorários. Apenas resuma e classifique para análise humana."
+              "content": "Você é um assistente de triagem interna para uma advogada que atua em demandas digitais. Você NÃO é advogado. Você NÃO pode dar parecer jurídico. Você NÃO pode prometer resultado. Você NÃO pode afirmar que cabe indenização. Você NÃO pode afirmar que há direito garantido. Você NÃO pode prometer remoção de conteúdo. Você NÃO pode prometer liminar. Você NÃO pode falar honorários. Você NÃO pode incentivar processo."
             },
             {
               "role": "user",
-              "content": "=Analise o lead abaixo e retorne exclusivamente JSON válido, sem markdown, no formato exato: {\"resumo_ia\":\"\",\"classificacao\":\"\",\"urgencia\":\"\",\"tipo_caso\":\"\",\"proximo_passo\":\"\"}\\n\\nCritérios:\\n- classificacao deve ser: quente, medio ou frio.\\n- urgencia deve ser: alta, media ou baixa.\\n- tipo_caso deve resumir o assunto principal.\\n- proximo_passo deve orientar apenas triagem humana e organização de provas, sem parecer jurídico.\\n\\nDados do lead:\\nNome: {{ $json.nome }}\\nWhatsApp: {{ $json.whatsapp }}\\nCidade/Estado: {{ $json.cidade_estado }}\\nPlataforma: {{ $json.plataforma }}\\nConteúdo no ar: {{ $json.conteudo_no_ar }}\\nPossui provas: {{ $json.possui_provas }}\\nPrejuízo: {{ $json.prejuizo }}\\nRelato: {{ $json.relato }}\\nOrigem: {{ $json.origem }}\\nCampanha: {{ $json.utm_campaign }}"
+              "content": "=Classifique o lead abaixo. Retorne apenas JSON válido, sem markdown, exatamente neste formato: {\"resumo_ia\":\"\",\"classificacao\":\"quente | medio | frio\",\"urgencia\":\"alta | media | baixa\",\"tipo_caso\":\"exposicao_digital | difamacao | perfil_falso | deepfake | uso_indevido_imagem | conteudo_ofensivo | conta_bloqueada | fake_news | outro\",\"proximo_passo\":\"\"}\\n\\nCritérios de classificação:\\n- quente: problema claro, conteúdo no ar, provas, prejuízo, urgência ou intenção forte de atendimento.\\n- medio: problema possível, relato relevante, mas faltam informações/provas.\\n- frio: relato genérico, curiosidade, pouca clareza ou sem elementos mínimos.\\n\\nDados do lead:\\nLead ID: {{ $json.lead_id }}\\nNome: {{ $json.nome }}\\nWhatsApp: {{ $json.whatsapp }}\\nE-mail: {{ $json.email }}\\nCidade: {{ $json.cidade }}\\nEstado: {{ $json.estado }}\\nPlataforma: {{ $json.plataforma }}\\nConteúdo no ar: {{ $json.conteudo_no_ar }}\\nPossui provas: {{ $json.possui_provas }}\\nPrejuízo: {{ $json.prejuizo }}\\nData do ocorrido: {{ $json.data_ocorrido }}\\nLink/perfil: {{ $json.link_perfil }}\\nProfissão: {{ $json.profissao }}\\nRenda estimada: {{ $json.renda_estimada }}\\nOrigem: {{ $json.origem }}\\nCampanha: {{ $json.utm_campaign }}\\nRelato: {{ $json.detalhes_caso }}"
             }
           ]
         },
@@ -95,14 +283,15 @@
           "temperature": 0.2
         }
       },
-      "id": "e8186025-401a-4fc7-bacf-4b7470f0e1f8",
+      "id": "bb418b9e-52dc-49d4-99f4-43593c65a033",
       "name": "OpenAI | Analisar Lead",
       "type": "n8n-nodes-base.openAi",
       "typeVersion": 1.8,
       "position": [
-        40,
-        60
+        620,
+        120
       ],
+      "continueOnFail": true,
       "credentials": {
         "openAiApi": {
           "id": "OPENAI_CREDENTIAL_ID_PLACEHOLDER",
@@ -112,15 +301,15 @@
     },
     {
       "parameters": {
-        "jsCode": "const lead = $items('Code | Normalizar Dados', 0, 0)[0]?.json ?? {};\nconst aiRaw = $input.first().json;\n\nfunction extractAiPayload(raw) {\n  if (raw && raw.resumo_ia) {\n    return raw;\n  }\n\n  let content = raw?.message?.content\n    ?? raw?.choices?.[0]?.message?.content\n    ?? raw?.data?.choices?.[0]?.message?.content\n    ?? raw?.text\n    ?? raw?.output\n    ?? raw?.content\n    ?? '';\n\n  if (typeof content !== 'string') {\n    content = JSON.stringify(content);\n  }\n\n  const cleaned = content.replace(/```json/gi, '').replace(/```/g, '').trim();\n\n  try {\n    return JSON.parse(cleaned);\n  } catch (error) {\n    return {\n      resumo_ia: cleaned || 'Resumo não retornado pela IA.',\n      classificacao: 'medio',\n      urgencia: 'media',\n      tipo_caso: 'Triagem digital',\n      proximo_passo: 'Revisar manualmente as informações e solicitar documentos ou provas complementares, se necessário.',\n    };\n  }\n}\n\nconst ai = extractAiPayload(aiRaw);\nconst allowedClassificacao = ['quente', 'medio', 'frio'];\nconst allowedUrgencia = ['alta', 'media', 'baixa'];\n\nreturn [\n  {\n    json: {\n      data_entrada: lead.data_entrada ?? new Date().toISOString(),\n      nome: lead.nome ?? '',\n      whatsapp: lead.whatsapp ?? '',\n      cidade_estado: lead.cidade_estado ?? '',\n      plataforma: lead.plataforma ?? '',\n      conteudo_no_ar: lead.conteudo_no_ar ?? '',\n      possui_provas: lead.possui_provas ?? '',\n      prejuizo: lead.prejuizo ?? '',\n      relato: lead.relato ?? '',\n      origem: lead.origem ?? 'site_google_ads',\n      utm_source: lead.utm_source ?? '',\n      utm_medium: lead.utm_medium ?? '',\n      utm_campaign: lead.utm_campaign ?? '',\n      utm_content: lead.utm_content ?? '',\n      utm_term: lead.utm_term ?? '',\n      resumo_ia: ai.resumo_ia ?? '',\n      classificacao: allowedClassificacao.includes(ai.classificacao) ? ai.classificacao : 'medio',\n      urgencia: allowedUrgencia.includes(ai.urgencia) ? ai.urgencia : 'media',\n      tipo_caso: ai.tipo_caso ?? '',\n      proximo_passo: ai.proximo_passo ?? '',\n      status: lead.status ?? 'Novo',\n    },\n  },\n];"
+        "jsCode": "const lead = $items('Code | Verificar Duplicidade', 0, 0)[0].json;\nconst aiRaw = $input.first().json;\n\nfunction extractAiPayload(raw) {\n  if (raw && raw.resumo_ia) return raw;\n\n  let content = raw?.message?.content\n    ?? raw?.choices?.[0]?.message?.content\n    ?? raw?.data?.choices?.[0]?.message?.content\n    ?? raw?.text\n    ?? raw?.output\n    ?? raw?.content\n    ?? '';\n\n  if (typeof content !== 'string') content = JSON.stringify(content ?? {});\n  const cleaned = content.replace(/```json/gi, '').replace(/```/g, '').trim();\n\n  try {\n    return JSON.parse(cleaned);\n  } catch (error) {\n    return {\n      resumo_ia: cleaned || 'Resumo não retornado pela IA. Revisar manualmente.',\n      classificacao: 'medio',\n      urgencia: 'media',\n      tipo_caso: 'outro',\n      proximo_passo: 'Revisar manualmente as informações e solicitar provas ou contexto complementar, se necessário.',\n    };\n  }\n}\n\nconst ai = extractAiPayload(aiRaw);\nconst allowedClassificacao = ['quente', 'medio', 'frio'];\nconst allowedUrgencia = ['alta', 'media', 'baixa'];\nconst allowedTipos = [\n  'exposicao_digital',\n  'difamacao',\n  'perfil_falso',\n  'deepfake',\n  'uso_indevido_imagem',\n  'conteudo_ofensivo',\n  'conta_bloqueada',\n  'fake_news',\n  'outro',\n];\n\nreturn [\n  {\n    json: {\n      lead_id: lead.lead_id,\n      data_entrada: lead.data_entrada,\n      nome: lead.nome,\n      whatsapp: lead.whatsapp,\n      email: lead.email,\n      origem: lead.origem,\n      plataforma: lead.plataforma,\n      conteudo_no_ar: lead.conteudo_no_ar,\n      possui_provas: lead.possui_provas,\n      prejuizo: lead.prejuizo,\n      data_ocorrido: lead.data_ocorrido,\n      link_perfil: lead.link_perfil,\n      detalhes_caso: lead.detalhes_caso,\n      cep: lead.cep,\n      cidade: lead.cidade,\n      estado: lead.estado,\n      profissao: lead.profissao,\n      renda_estimada: lead.renda_estimada,\n      classificacao: allowedClassificacao.includes(ai.classificacao) ? ai.classificacao : 'medio',\n      urgencia: allowedUrgencia.includes(ai.urgencia) ? ai.urgencia : 'media',\n      tipo_caso: allowedTipos.includes(ai.tipo_caso) ? ai.tipo_caso : 'outro',\n      resumo_ia: ai.resumo_ia ?? '',\n      proximo_passo: ai.proximo_passo ?? '',\n      responsavel: lead.responsavel ?? '',\n      duplicado: lead.duplicado ?? 'Não',\n      utm_source: lead.utm_source,\n      utm_medium: lead.utm_medium,\n      utm_campaign: lead.utm_campaign,\n      utm_content: lead.utm_content,\n      utm_term: lead.utm_term,\n      gclid: lead.gclid,\n      fbclid: lead.fbclid,\n      page_url: lead.page_url,\n      user_agent: lead.user_agent,\n      ip: lead.ip,\n      status: lead.status ?? 'Novo',\n    },\n  },\n];"
       },
-      "id": "fe585be5-019b-4d2e-a0ec-f73ec4167f25",
+      "id": "2ed92b6e-e570-4ff5-a02b-e284b3bca5ad",
       "name": "Code | Preparar Linha Google Sheets",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        300,
-        60
+        880,
+        120
       ]
     },
     {
@@ -137,234 +326,22 @@
           "mode": "name"
         },
         "columns": {
-          "mappingMode": "defineBelow",
-          "value": {
-            "data_entrada": "={{ $json.data_entrada }}",
-            "nome": "={{ $json.nome }}",
-            "whatsapp": "={{ $json.whatsapp }}",
-            "cidade_estado": "={{ $json.cidade_estado }}",
-            "plataforma": "={{ $json.plataforma }}",
-            "conteudo_no_ar": "={{ $json.conteudo_no_ar }}",
-            "possui_provas": "={{ $json.possui_provas }}",
-            "prejuizo": "={{ $json.prejuizo }}",
-            "relato": "={{ $json.relato }}",
-            "origem": "={{ $json.origem }}",
-            "utm_source": "={{ $json.utm_source }}",
-            "utm_medium": "={{ $json.utm_medium }}",
-            "utm_campaign": "={{ $json.utm_campaign }}",
-            "utm_content": "={{ $json.utm_content }}",
-            "utm_term": "={{ $json.utm_term }}",
-            "resumo_ia": "={{ $json.resumo_ia }}",
-            "classificacao": "={{ $json.classificacao }}",
-            "urgencia": "={{ $json.urgencia }}",
-            "tipo_caso": "={{ $json.tipo_caso }}",
-            "proximo_passo": "={{ $json.proximo_passo }}",
-            "status": "={{ $json.status }}"
-          },
+          "mappingMode": "autoMapInputData",
+          "value": {},
           "matchingColumns": [],
-          "schema": [
-            {
-              "id": "data_entrada",
-              "displayName": "data_entrada",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "nome",
-              "displayName": "nome",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "whatsapp",
-              "displayName": "whatsapp",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "cidade_estado",
-              "displayName": "cidade_estado",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "plataforma",
-              "displayName": "plataforma",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "conteudo_no_ar",
-              "displayName": "conteudo_no_ar",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "possui_provas",
-              "displayName": "possui_provas",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "prejuizo",
-              "displayName": "prejuizo",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "relato",
-              "displayName": "relato",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "origem",
-              "displayName": "origem",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "utm_source",
-              "displayName": "utm_source",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "utm_medium",
-              "displayName": "utm_medium",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "utm_campaign",
-              "displayName": "utm_campaign",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "utm_content",
-              "displayName": "utm_content",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "utm_term",
-              "displayName": "utm_term",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "resumo_ia",
-              "displayName": "resumo_ia",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "classificacao",
-              "displayName": "classificacao",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "urgencia",
-              "displayName": "urgencia",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "tipo_caso",
-              "displayName": "tipo_caso",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "proximo_passo",
-              "displayName": "proximo_passo",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "status",
-              "displayName": "status",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            }
-          ],
+          "schema": [],
           "attemptToConvertTypes": false,
           "convertFieldsToString": true
         },
         "options": {}
       },
-      "id": "f5d6f463-5e0b-447c-9cbb-b3ad6f26d723",
+      "id": "fb9a44a2-8bff-443e-b018-a447b2f2d3df",
       "name": "Google Sheets | Salvar Lead",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        580,
-        60
+        1140,
+        120
       ],
       "credentials": {
         "googleSheetsOAuth2Api": {
@@ -375,22 +352,43 @@
     },
     {
       "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $('Code | Preparar Linha Google Sheets').first().json.classificacao }}",
+              "operation": "notEqual",
+              "value2": "frio"
+            }
+          ]
+        }
+      },
+      "id": "92ba0b52-e12b-47f1-8bde-f23b5fae38b9",
+      "name": "IF | Enviar Gmail?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1400,
+        120
+      ]
+    },
+    {
+      "parameters": {
         "resource": "message",
         "operation": "send",
         "sendTo": "destinatario@seudominio.com.br",
-        "subject": "=Novo lead jurídico digital - {{ $('Code | Preparar Linha Google Sheets').first().json.classificacao }}",
-        "message": "=NOVO LEAD - ADVOCACIA DIGITAL\\n\\nNome: {{ $('Code | Preparar Linha Google Sheets').first().json.nome }}\\nWhatsApp: {{ $('Code | Preparar Linha Google Sheets').first().json.whatsapp }}\\nCidade/Estado: {{ $('Code | Preparar Linha Google Sheets').first().json.cidade_estado }}\\nPlataforma: {{ $('Code | Preparar Linha Google Sheets').first().json.plataforma }}\\nConteúdo no ar: {{ $('Code | Preparar Linha Google Sheets').first().json.conteudo_no_ar }}\\nPossui provas: {{ $('Code | Preparar Linha Google Sheets').first().json.possui_provas }}\\nPrejuízo: {{ $('Code | Preparar Linha Google Sheets').first().json.prejuizo }}\\nOrigem: {{ $('Code | Preparar Linha Google Sheets').first().json.origem }}\\nCampanha: {{ $('Code | Preparar Linha Google Sheets').first().json.utm_campaign }}\\n\\nResumo da IA:\\n{{ $('Code | Preparar Linha Google Sheets').first().json.resumo_ia }}\\n\\nClassificação: {{ $('Code | Preparar Linha Google Sheets').first().json.classificacao }}\\nUrgência: {{ $('Code | Preparar Linha Google Sheets').first().json.urgencia }}\\nTipo de caso: {{ $('Code | Preparar Linha Google Sheets').first().json.tipo_caso }}\\nPróximo passo: {{ $('Code | Preparar Linha Google Sheets').first().json.proximo_passo }}",
+        "subject": "={{ $('Code | Preparar Linha Google Sheets').first().json.classificacao === 'quente' ? 'URGENTE | Lead quente - ' + $('Code | Preparar Linha Google Sheets').first().json.nome : 'Novo lead jurídico digital - ' + $('Code | Preparar Linha Google Sheets').first().json.nome }}",
+        "message": "=NOVO LEAD - ADVOCACIA DIGITAL\\n\\nLead ID: {{ $('Code | Preparar Linha Google Sheets').first().json.lead_id }}\\nNome: {{ $('Code | Preparar Linha Google Sheets').first().json.nome }}\\nWhatsApp: {{ $('Code | Preparar Linha Google Sheets').first().json.whatsapp }}\\nE-mail: {{ $('Code | Preparar Linha Google Sheets').first().json.email }}\\nCidade: {{ $('Code | Preparar Linha Google Sheets').first().json.cidade }}\\nEstado: {{ $('Code | Preparar Linha Google Sheets').first().json.estado }}\\nPlataforma: {{ $('Code | Preparar Linha Google Sheets').first().json.plataforma }}\\nConteúdo no ar: {{ $('Code | Preparar Linha Google Sheets').first().json.conteudo_no_ar }}\\nPossui provas: {{ $('Code | Preparar Linha Google Sheets').first().json.possui_provas }}\\nPrejuízo: {{ $('Code | Preparar Linha Google Sheets').first().json.prejuizo }}\\nData do ocorrido: {{ $('Code | Preparar Linha Google Sheets').first().json.data_ocorrido }}\\nLink/perfil: {{ $('Code | Preparar Linha Google Sheets').first().json.link_perfil }}\\nOrigem: {{ $('Code | Preparar Linha Google Sheets').first().json.origem }}\\nCampanha: {{ $('Code | Preparar Linha Google Sheets').first().json.utm_campaign }}\\n\\nResumo da IA:\\n{{ $('Code | Preparar Linha Google Sheets').first().json.resumo_ia }}\\n\\nClassificação: {{ $('Code | Preparar Linha Google Sheets').first().json.classificacao }}\\nUrgência: {{ $('Code | Preparar Linha Google Sheets').first().json.urgencia }}\\nTipo de caso: {{ $('Code | Preparar Linha Google Sheets').first().json.tipo_caso }}\\nPróximo passo: {{ $('Code | Preparar Linha Google Sheets').first().json.proximo_passo }}\\n\\nRelato original:\\n{{ $('Code | Preparar Linha Google Sheets').first().json.detalhes_caso }}",
         "options": {}
       },
-      "id": "2e856e3d-e059-44ab-a620-e7a44500fae3",
-      "name": "Gmail | Avisar Novo Lead",
+      "id": "9c6ff5e0-8c9f-4a38-b310-781b2175b2c9",
+      "name": "Gmail | Avisar Lead Quente ou Médio",
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.1,
       "position": [
-        860,
-        60
+        1660,
+        20
       ],
-      "webhookId": "gmail-aviso-lead-advocacia-digital",
+      "webhookId": "gmail-aviso-lead-advocacia-digital-v2",
       "credentials": {
         "gmailOAuth2": {
           "id": "GMAIL_CREDENTIAL_ID_PLACEHOLDER",
@@ -400,42 +398,76 @@
     },
     {
       "parameters": {
-        "respondWith": "json",
-        "responseBody": "={\n  \"success\": true,\n  \"message\": \"Informações recebidas com sucesso. A equipe responsável dará continuidade ao atendimento.\"\n}",
-        "options": {
-          "responseCode": 200
-        }
+        "jsCode": "const lead = $('Code | Preparar Linha Google Sheets').first().json;\nreturn [\n  {\n    json: {\n      data: new Date().toISOString(),\n      lead_id: lead.lead_id,\n      remetente: 'workflow_n8n',\n      destinatario: 'destinatario@seudominio.com.br',\n      mensagem: `Alerta de novo lead enviado por Gmail. Classificação: ${lead.classificacao}.`,\n      status: 'enviado',\n      tipo_mensagem: 'alerta_email',\n      canal: 'gmail',\n    },\n  },\n];"
       },
-      "id": "00470f9a-215e-4391-9ec0-4d6e1e6314aa",
-      "name": "Respond to Webhook | Sucesso",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.4,
+      "id": "7f68ea5d-735d-4acf-bac1-6f5a126eb5fc",
+      "name": "Code | Preparar Log Gmail",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [
-        1140,
-        60
+        1920,
+        20
       ]
     },
     {
       "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "COLOQUE_AQUI_O_ID_DA_PLANILHA_LEADS_GISELE_ADVOCACIA_DIGITAL",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Mensagens",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "a45cfe7a-31df-4267-aa7e-92f70d1f9f8e",
+      "name": "Google Sheets | Registrar Mensagem Gmail",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2180,
+        20
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "GOOGLE_SHEETS_CREDENTIAL_ID_PLACEHOLDER",
+          "name": "Google Sheets OAuth2 Placeholder"
+        }
+      }
+    },
+    {
+      "parameters": {
         "respondWith": "json",
-        "responseBody": "={\n  \"success\": false,\n  \"message\": \"Algumas informações obrigatórias não foram enviadas. Verifique nome, WhatsApp e relato.\"\n}",
+        "responseBody": "={\n  \"success\": true,\n  \"lead_id\": \"{{ $('Code | Preparar Linha Google Sheets').first().json.lead_id }}\",\n  \"classificacao\": \"{{ $('Code | Preparar Linha Google Sheets').first().json.classificacao }}\",\n  \"message\": \"Informações recebidas com sucesso. A equipe responsável dará continuidade ao atendimento.\"\n}",
         "options": {
-          "responseCode": 400
+          "responseCode": 200
         }
       },
-      "id": "7c037b77-6970-48d6-a3ea-8e0f77a8568b",
-      "name": "Respond to Webhook | Erro Validação",
+      "id": "367f68aa-e7e3-4a91-bb5f-c1c3d9119297",
+      "name": "Respond to Webhook | Sucesso",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
       "position": [
-        40,
-        300
+        2440,
+        120
       ]
     }
   ],
   "pinData": {},
   "connections": {
-    "Webhook | Receber Lead": {
+    "Webhook | Receber Lead V2": {
       "main": [
         [
           {
@@ -461,14 +493,87 @@
       "main": [
         [
           {
-            "node": "OpenAI | Analisar Lead",
+            "node": "Google Sheets | Buscar Leads por WhatsApp",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
+            "node": "Google Sheets | Registrar Erro Validação",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets | Registrar Erro Validação": {
+      "main": [
+        [
+          {
             "node": "Respond to Webhook | Erro Validação",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets | Buscar Leads por WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Code | Verificar Duplicidade",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code | Verificar Duplicidade": {
+      "main": [
+        [
+          {
+            "node": "IF | Lead Duplicado?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF | Lead Duplicado?": {
+      "main": [
+        [
+          {
+            "node": "Code | Preparar Log Duplicidade",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "OpenAI | Analisar Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code | Preparar Log Duplicidade": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets | Registrar Duplicidade",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets | Registrar Duplicidade": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook | Duplicado",
             "type": "main",
             "index": 0
           }
@@ -501,14 +606,54 @@
       "main": [
         [
           {
-            "node": "Gmail | Avisar Novo Lead",
+            "node": "IF | Enviar Gmail?",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Gmail | Avisar Novo Lead": {
+    "IF | Enviar Gmail?": {
+      "main": [
+        [
+          {
+            "node": "Gmail | Avisar Lead Quente ou Médio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook | Sucesso",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail | Avisar Lead Quente ou Médio": {
+      "main": [
+        [
+          {
+            "node": "Code | Preparar Log Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code | Preparar Log Gmail": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets | Registrar Mensagem Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets | Registrar Mensagem Gmail": {
       "main": [
         [
           {
@@ -524,10 +669,10 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "e79bc159-57db-4af5-bfc6-549c6e5139b1",
+  "versionId": "f2b34105-2e2a-49aa-8a01-b8e1adc316f5",
   "meta": {
     "templateCredsSetupCompleted": false
   },
-  "id": "lead-formulario-advocacia-digital",
+  "id": "lead-formulario-advocacia-digital-v2",
   "tags": []
 }
