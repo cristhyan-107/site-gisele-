@@ -37,8 +37,8 @@ const lawyer = {
   oab: "OAB/GO 57.455",
   location: "Goiânia - GO",
   email: "gisgabri.adv@gmail.com",
-  whatsappLabel: "(62) 99488-8233",
-  whatsappNumber: "5562994888233",
+  whatsappLabel: "(11) 91623-9443",
+  whatsappNumber: "5511916239443",
 };
 
 const whatsappMessage =
