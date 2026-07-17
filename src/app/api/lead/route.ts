@@ -8,6 +8,7 @@ const LEAD_FIELDS = [
   "cidade",
   "estado",
   "cidade_estado",
+  "area_atuacao",
   "rede_social",
   "plataforma",
   "link_publicacao",
@@ -100,6 +101,7 @@ export async function POST(request: Request) {
       cidade: "",
       estado: "",
       cidade_estado: "",
+      area_atuacao: "",
       rede_social: "",
       plataforma: "",
       link_publicacao: "",
@@ -127,6 +129,8 @@ export async function POST(request: Request) {
     }
 
     payload.origem = "site_google_ads";
+    payload.area_atuacao =
+      payload.area_atuacao || payload.plataforma || payload.rede_social;
     payload.plataforma = payload.plataforma || payload.rede_social;
     payload.rede_social = payload.rede_social || payload.plataforma;
     payload.relato = payload.relato || payload.descricao_caso;

@@ -13,14 +13,14 @@ import {
 export const metadata = {
   title: "Política de Privacidade | Dra. Gisele Gabriel",
   description:
-    "Política de privacidade para triagem inicial de casos envolvendo reputação online, ataques, difamação, perfil falso e uso indevido de imagem.",
+    "Política de privacidade para o atendimento inicial realizado pelo site da Dra. Gisele Gabriel.",
 };
 
 const privacySections = [
   {
     title: "Dados coletados",
     icon: Database,
-    text: "O formulário pode coletar nome, WhatsApp, e-mail, cidade, estado, rede social ou plataforma envolvida, links informados, indicação sobre conteúdo no ar, existência de provas, prejuízo percebido, descrição do caso e consentimento para tratamento dos dados. Também podem ser coletados dados de origem, parâmetros UTM, gclid, fbclid, página de origem e URL da página acessada.",
+    text: "O formulário pode coletar nome, WhatsApp, e-mail, cidade, estado, área relacionada ao caso, protocolos, referências ou links informados, indicação sobre a continuidade do problema, existência de documentos ou comprovantes, impacto percebido, descrição da situação e consentimento para tratamento dos dados. Também podem ser coletados dados de origem, parâmetros UTM, gclid, fbclid, página de origem e URL da página acessada.",
   },
   {
     title: "Finalidade da coleta",
@@ -77,7 +77,8 @@ export default function PrivacyPolicyPage() {
             <p className="mt-6 text-pretty text-lg leading-8 text-slate-600 md:text-xl md:leading-9">
               Esta política explica como os dados informados neste site são
               coletados e utilizados para triagem inicial de contatos
-              relacionados à defesa da honra, imagem e reputação na internet.
+              relacionados às áreas de atuação apresentadas na página
+              institucional.
             </p>
           </div>
         </div>

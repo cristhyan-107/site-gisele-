@@ -4,9 +4,10 @@ import "./globals.css";
 const gtmId = process.env.NEXT_PUBLIC_GTM_ID?.trim() || "GTM-MXH4SQ8C";
 
 export const metadata: Metadata = {
-  title: "Dra. Gisele Gabriel | Advogada em Direito Digital e Reputação Online",
+  title: "Dra. Gisele Gabriel | Atendimento Jurídico",
   description:
-    "Atuação jurídica em casos de difamação, perfil falso, fake news, uso indevido de imagem, ataques em redes sociais e prejuízos à reputação na internet.",
+    "Atendimento jurídico claro e individualizado pela equipe da Dra. Gisele Gabriel.",
+  applicationName: "Dra. Gisele Gabriel",
 };
 
 export default function RootLayout({

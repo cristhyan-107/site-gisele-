@@ -31,6 +31,7 @@
 html {
   background: var(--paper);
   color: var(--foreground);
+  scroll-padding-top: 6.5rem;
 }
 
 body {
@@ -38,6 +39,7 @@ body {
   background: var(--paper);
   color: var(--foreground);
   font-family: Aptos, "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  overflow-x: hidden;
   text-rendering: optimizeLegibility;
 }
 
@@ -46,6 +48,16 @@ input,
 select,
 textarea {
   font: inherit;
+}
+
+button,
+summary {
+  -webkit-tap-highlight-color: transparent;
+}
+
+:focus-visible {
+  outline: 3px solid rgba(167, 125, 53, 0.72);
+  outline-offset: 3px;
 }
 
 ::selection {
@@ -201,6 +213,45 @@ textarea {
   box-shadow: 0 24px 65px rgba(15, 23, 42, 0.09);
 }
 
+.practice-card {
+  position: relative;
+  display: flex;
+  min-height: 31rem;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 1.65rem;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.88)),
+    linear-gradient(135deg, rgba(167, 125, 53, 0.08), transparent);
+  padding: 1.6rem;
+  box-shadow:
+    0 20px 58px rgba(15, 23, 42, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.94);
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
+}
+
+.practice-card::before {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: linear-gradient(90deg, var(--gold), transparent 74%);
+  content: "";
+  opacity: 0.72;
+}
+
+.practice-card:hover {
+  border-color: rgba(167, 125, 53, 0.38);
+  box-shadow: 0 28px 72px rgba(15, 23, 42, 0.1);
+}
+
+.practice-card .premium-button {
+  margin-top: auto;
+}
+
 .icon-box {
   display: flex;
   width: 3rem;
@@ -218,6 +269,13 @@ textarea {
 }
 
 .premium-card:hover .icon-box {
+  background: var(--navy);
+  color: var(--gold-light);
+  transform: rotate(-3deg) scale(1.04);
+}
+
+.practice-card:hover .icon-box,
+.measure-item:hover .icon-box {
   background: var(--navy);
   color: var(--gold-light);
   transform: rotate(-3deg) scale(1.04);
@@ -268,10 +326,30 @@ textarea {
 }
 
 .timeline-step p {
-  color: var(--navy);
-  font-size: 1.02rem;
-  font-weight: 800;
-  line-height: 1.45;
+  color: var(--slate-650);
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.75;
+}
+
+.faq-item {
+  overflow: hidden;
+  border: 1px solid rgba(15, 23, 42, 0.09);
+  border-radius: 1rem;
+  background: white;
+  box-shadow: 0 12px 34px rgba(15, 23, 42, 0.045);
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.faq-item[open] {
+  border-color: rgba(167, 125, 53, 0.34);
+  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.07);
+}
+
+.faq-item summary::-webkit-details-marker {
+  display: none;
 }
 
 .pill-dark {
@@ -330,5 +408,24 @@ textarea {
 
   .premium-card {
     min-height: auto;
+  }
+
+  .practice-card {
+    min-height: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
   }
 }

@@ -17,7 +17,7 @@ const initialForm = {
   email: "",
   cidade: "",
   estado: "GO",
-  rede_social: "",
+  area_atuacao: "",
   link_publicacao: "",
   link_perfil: "",
   conteudo_no_ar: "",
@@ -43,16 +43,14 @@ const successMessage =
 const requiredMessage =
   "Preencha os campos obrigatórios e aceite a Política de Privacidade para continuar.";
 
-const socialOptions = [
-  "Instagram",
-  "TikTok",
-  "Facebook",
-  "WhatsApp",
-  "Google",
-  "YouTube",
-  "X/Twitter",
-  "Site/Reclame Aqui",
-  "Outra",
+const practiceAreaOptions = [
+  "Planos de saúde",
+  "Seguros",
+  "Contas bloqueadas",
+  "Golpes bancários",
+  "Companhias aéreas",
+  "Direito digital e reputação online",
+  "Outra situação",
 ];
 
 export function LeadForm() {
@@ -68,7 +66,7 @@ export function LeadForm() {
           form.email &&
           form.cidade &&
           form.estado &&
-          form.rede_social &&
+          form.area_atuacao &&
           form.conteudo_no_ar &&
           form.possui_provas &&
           form.prejuizo &&
@@ -99,8 +97,9 @@ export function LeadForm() {
       cidade: form.cidade,
       estado: form.estado,
       cidade_estado: cidadeEstado,
-      rede_social: form.rede_social,
-      plataforma: form.rede_social,
+      area_atuacao: form.area_atuacao,
+      rede_social: form.area_atuacao,
+      plataforma: form.area_atuacao,
       link_publicacao: form.link_publicacao,
       link_perfil: form.link_perfil,
       conteudo_no_ar: form.conteudo_no_ar,
@@ -185,8 +184,9 @@ export function LeadForm() {
             Envie as informações para triagem
           </h3>
           <p className="mt-2 text-sm leading-6 text-slate-500">
-            Não envie arquivos neste momento. Prints, vídeos, documentos e
-            demais provas poderão ser solicitados pelo canal de atendimento.
+            Não envie arquivos neste momento. Documentos, protocolos, prints e
+            demais comprovantes poderão ser solicitados pelo canal de
+            atendimento.
           </p>
         </div>
       </div>
@@ -264,18 +264,18 @@ export function LeadForm() {
         </div>
 
         <label className="form-label md:col-span-2">
-          Rede social ou plataforma
+          Área relacionada ao caso
           <select
             required
             className={fieldClass}
-            name="rede_social"
-            value={form.rede_social}
+            name="area_atuacao"
+            value={form.area_atuacao}
             onChange={(event) =>
-              setForm({ ...form, rede_social: event.target.value })
+              setForm({ ...form, area_atuacao: event.target.value })
             }
           >
             <option value="">Selecione</option>
-            {socialOptions.map((option) => (
+            {practiceAreaOptions.map((option) => (
               <option key={option} value={option}>
                 {option}
               </option>
@@ -284,11 +284,10 @@ export function LeadForm() {
         </label>
 
         <label className="form-label">
-          Link da publicação, se houver
+          Protocolo, referência ou link, se houver
           <input
             className={fieldClass}
             name="link_publicacao"
-            inputMode="url"
             value={form.link_publicacao}
             onChange={(event) =>
               setForm({ ...form, link_publicacao: event.target.value })
@@ -297,7 +296,7 @@ export function LeadForm() {
         </label>
 
         <label className="form-label">
-          Link do perfil, se houver
+          Outro link ou perfil relacionado, se houver
           <input
             className={fieldClass}
             name="link_perfil"
@@ -310,7 +309,7 @@ export function LeadForm() {
         </label>
 
         <label className="form-label">
-          O conteúdo ainda está no ar?
+          O problema ainda está acontecendo?
           <select
             required
             className={fieldClass}
@@ -328,7 +327,7 @@ export function LeadForm() {
         </label>
 
         <label className="form-label">
-          Possui prints, links, vídeos ou outras provas?
+          Possui documentos, protocolos, prints ou comprovantes?
           <select
             required
             className={fieldClass}
@@ -347,14 +346,14 @@ export function LeadForm() {
       </div>
 
       <label className="form-label mt-4 block">
-        Qual prejuízo você percebeu?
+        Qual impacto ou risco você percebeu?
         <input
           required
           className={fieldClass}
           name="prejuizo"
           value={form.prejuizo}
           onChange={(event) => setForm({ ...form, prejuizo: event.target.value })}
-          placeholder="Ex.: prejuízo à reputação, constrangimento familiar, perda de clientes, abalo profissional, ameaças, exposição da imagem."
+          placeholder="Ex.: risco à saúde, perda financeira, bloqueio da atividade profissional, viagem prejudicada ou outro impacto relevante."
         />
       </label>
 
@@ -373,8 +372,8 @@ export function LeadForm() {
       </label>
 
       <p className="mt-4 rounded-[1.05rem] border border-gold/20 bg-gold/8 p-4 text-sm font-semibold leading-6 text-slate-650">
-        Após o envio das informações iniciais, imagens, vídeos, documentos e
-        demais provas poderão ser solicitados pelo canal de atendimento indicado.
+        Após o envio das informações iniciais, documentos e demais comprovantes
+        poderão ser solicitados pelo canal de atendimento indicado.
       </p>
 
       <label className="mt-4 grid grid-cols-[1.1rem_1fr] items-start gap-3 rounded-[1.05rem] border border-slate-200 bg-white/75 p-4 text-sm font-semibold leading-6 text-slate-600">
