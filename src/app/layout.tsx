@@ -1,13 +1,28 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { siteDescription, siteName, siteUrl } from "@/lib/site";
 
 const gtmId = process.env.NEXT_PUBLIC_GTM_ID?.trim() || "GTM-MXH4SQ8C";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: "Dra. Gisele Gabriel | Atendimento Jurídico",
-  description:
-    "Atendimento jurídico claro e individualizado pela equipe da Dra. Gisele Gabriel.",
-  applicationName: "Dra. Gisele Gabriel",
+  description: siteDescription,
+  applicationName: siteName,
+  manifest: "/manifest.webmanifest",
+  openGraph: {
+    locale: "pt_BR",
+    siteName,
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+  },
+};
+
+export const viewport: Viewport = {
+  colorScheme: "light",
+  themeColor: "#091a31",
 };
 
 export default function RootLayout({

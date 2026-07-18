@@ -12,6 +12,12 @@ declare global {
 
 export const ORIGIN = "site_google_ads";
 
+type WhatsappClickContext = {
+  area?: string;
+  cta?: string;
+  location?: string;
+};
+
 export function getUrlAttribution() {
   if (typeof window === "undefined") {
     return {
@@ -51,9 +57,14 @@ export function pushDataLayer(event: DataLayerEvent) {
   window.dataLayer.push(event);
 }
 
-export function trackWhatsappClick() {
+export function trackWhatsappClick(context: WhatsappClickContext = {}) {
   pushDataLayer({
     event: "click_whatsapp",
     origem: ORIGIN,
+    area: context.area ?? "geral",
+    cta: context.cta ?? "Falar pelo WhatsApp",
+    localizacao_cta: context.location ?? "nao_informada",
+    pagina:
+      typeof window === "undefined" ? "" : window.location.pathname,
   });
 }

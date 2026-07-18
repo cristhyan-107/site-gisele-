@@ -2,7 +2,12 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { motion, type Variants } from "framer-motion";
+import {
+  AnimatePresence,
+  MotionConfig,
+  motion,
+  type Variants,
+} from "framer-motion";
 import {
   AlertTriangle,
   ArrowRight,
@@ -28,7 +33,7 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { LeadForm } from "@/components/LeadForm";
 import { trackWhatsappClick } from "@/lib/analytics";
 
@@ -298,19 +303,32 @@ function WhatsAppButton({
   variant = "secondary",
   className = "",
   ariaLabel,
+  trackingArea = "geral",
+  trackingLocation = "nao_informada",
 }: {
   children?: React.ReactNode;
   message?: string;
   variant?: "primary" | "secondary" | "light";
   className?: string;
   ariaLabel?: string;
+  trackingArea?: string;
+  trackingLocation?: string;
 }) {
+  const trackingCta =
+    typeof children === "string" ? children : "Falar pelo WhatsApp";
+
   return (
     <motion.a
       aria-label={ariaLabel}
       className={`premium-button premium-button--${variant} ${className}`}
       href={buildWhatsappHref(message)}
-      onClick={trackWhatsappClick}
+      onClick={() =>
+        trackWhatsappClick({
+          area: trackingArea,
+          cta: trackingCta,
+          location: trackingLocation,
+        })
+      }
       rel="noreferrer"
       target="_blank"
       whileHover={{ y: -2 }}
@@ -347,8 +365,39 @@ function PrimaryAnchor({
 function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
+  useEffect(() => {
+    if (!isMenuOpen) {
+      return;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsMenuOpen(false);
+      }
+    }
+
+    function closeOnDesktop() {
+      if (window.innerWidth >= 1280) {
+        setIsMenuOpen(false);
+      }
+    }
+
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", closeOnEscape);
+    window.addEventListener("resize", closeOnDesktop);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+      window.removeEventListener("resize", closeOnDesktop);
+    };
+  }, [isMenuOpen]);
+
   return (
-    <header className="fixed inset-x-0 top-0 z-50 border-b border-slate-200/80 bg-white/94 shadow-[0_1px_26px_rgba(15,23,42,0.06)] backdrop-blur-xl">
+    <>
+      <header className="fixed inset-x-0 top-0 z-50 border-b border-slate-200/80 bg-white/94 shadow-[0_1px_26px_rgba(15,23,42,0.06)] backdrop-blur-xl">
       <a
         className="sr-only rounded-md bg-white px-4 py-3 font-bold text-navy focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60]"
         href="#conteudo-principal"
@@ -389,6 +438,7 @@ function Header() {
         <div className="hidden lg:block">
           <WhatsAppButton
             ariaLabel="Falar com a equipe da Dra. Gisele Gabriel pelo WhatsApp"
+            trackingLocation="header_desktop"
           >
             Falar com a equipe
           </WhatsAppButton>
@@ -410,10 +460,15 @@ function Header() {
         </button>
       </div>
 
-      {isMenuOpen ? (
-        <div
+      <AnimatePresence>
+        {isMenuOpen ? (
+        <motion.div
+          animate={{ opacity: 1, y: 0 }}
           className="border-t border-slate-200 bg-white px-4 pb-5 pt-3 shadow-[0_18px_35px_rgba(15,23,42,0.08)] sm:px-6 xl:hidden"
+          exit={{ opacity: 0, y: -10 }}
           id="menu-mobile"
+          initial={{ opacity: 0, y: -10 }}
+          transition={{ duration: 0.2 }}
         >
           <nav
             aria-label="Navegação mobile"
@@ -432,14 +487,30 @@ function Header() {
             <WhatsAppButton
               ariaLabel="Falar com a equipe da Dra. Gisele Gabriel pelo WhatsApp"
               className="mt-3"
+              trackingLocation="menu_mobile"
               variant="primary"
             >
               Falar com a equipe
             </WhatsAppButton>
           </nav>
-        </div>
-      ) : null}
-    </header>
+        </motion.div>
+        ) : null}
+      </AnimatePresence>
+      </header>
+      <AnimatePresence>
+        {isMenuOpen ? (
+          <motion.button
+            animate={{ opacity: 1 }}
+            aria-label="Fechar menu"
+            className="fixed inset-0 z-40 cursor-default bg-navy/15 backdrop-blur-[2px] xl:hidden"
+            exit={{ opacity: 0 }}
+            initial={{ opacity: 0 }}
+            onClick={() => setIsMenuOpen(false)}
+            type="button"
+          />
+        ) : null}
+      </AnimatePresence>
+    </>
   );
 }
 
@@ -448,9 +519,11 @@ function LawyerPortrait() {
 
   return (
     <div className="relative mx-auto w-full max-w-[500px]">
-      <div
+      <motion.div
+        animate={{ rotate: [0, 1.4, -0.8, 0], scale: [1, 1.018, 1] }}
         aria-hidden="true"
         className="absolute -inset-3 rounded-[2rem] border border-gold/15 bg-[linear-gradient(145deg,rgba(167,125,53,0.12),transparent_55%)]"
+        transition={{ duration: 8, ease: "easeInOut", repeat: Infinity }}
       />
       <div className="relative overflow-hidden rounded-[1.65rem] border border-slate-200 bg-white shadow-[0_28px_80px_rgba(12,29,53,0.16)]">
         {hasImageError ? (
@@ -470,13 +543,13 @@ function LawyerPortrait() {
         ) : (
           <Image
             alt={portraitAlt}
-            className="h-auto w-full object-cover"
-            height={760}
+            className="aspect-[3/4] h-auto w-full object-cover object-[center_38%]"
+            height={1448}
             onError={() => setHasImageError(true)}
             priority
             sizes="(max-width: 1023px) 92vw, 44vw"
             src={portraitSrc}
-            width={620}
+            width={1086}
           />
         )}
       </div>
@@ -539,9 +612,17 @@ function Hero() {
       id="inicio"
     >
       <div className="abstract-grid absolute inset-0 -z-10 opacity-70" />
-      <div
+      <motion.div
+        animate={{ x: [0, -24, 8, 0], y: [0, 18, -8, 0] }}
         aria-hidden="true"
         className="absolute -right-32 top-28 -z-10 size-[32rem] rounded-full bg-gold/8 blur-3xl"
+        transition={{ duration: 13, ease: "easeInOut", repeat: Infinity }}
+      />
+      <motion.div
+        animate={{ rotate: [0, 9, 0], y: [0, -18, 0] }}
+        aria-hidden="true"
+        className="absolute -left-20 bottom-20 -z-10 size-52 rounded-[3rem] border border-gold/10 bg-white/55 shadow-2xl backdrop-blur"
+        transition={{ duration: 10, ease: "easeInOut", repeat: Infinity }}
       />
       <div className="mx-auto grid min-h-[calc(100svh-5.5rem)] max-w-7xl items-center gap-12 px-4 py-12 sm:px-6 lg:grid-cols-[1.08fr_0.92fr] lg:px-8 lg:py-16">
         <motion.div
@@ -584,6 +665,7 @@ function Hero() {
           >
             <WhatsAppButton
               ariaLabel="Solicitar análise inicial pelo WhatsApp"
+              trackingLocation="hero"
               variant="primary"
             >
               Solicitar análise inicial
@@ -688,6 +770,8 @@ function PracticeAreasSection() {
                 ariaLabel={`${area.cta} pelo WhatsApp`}
                 className="mt-7 w-full"
                 message={area.message}
+                trackingArea={area.title}
+                trackingLocation="card_area_atuacao"
                 variant="secondary"
               >
                 {area.cta}
@@ -722,6 +806,7 @@ function UrgentSection() {
           </div>
           <WhatsAppButton
             ariaLabel="Falar com a equipe sobre um caso urgente pelo WhatsApp"
+            trackingLocation="faixa_urgencia"
             variant="light"
           >
             Falar com a equipe
@@ -973,6 +1058,7 @@ function FormSection() {
           <WhatsAppButton
             ariaLabel="Solicitar análise inicial pelo WhatsApp"
             className="mt-8"
+            trackingLocation="secao_formulario"
           >
             Falar pelo WhatsApp
           </WhatsAppButton>
@@ -1038,6 +1124,7 @@ function FinalCta() {
           </div>
           <WhatsAppButton
             ariaLabel="Solicitar análise inicial pelo WhatsApp"
+            trackingLocation="cta_final"
             variant="light"
           >
             Solicitar análise inicial pelo WhatsApp
@@ -1109,7 +1196,12 @@ function Footer() {
             <a
               className="footer-link"
               href={buildWhatsappHref(whatsappMessages.generic)}
-              onClick={trackWhatsappClick}
+              onClick={() =>
+                trackWhatsappClick({
+                  cta: "WhatsApp",
+                  location: "rodape",
+                })
+              }
               rel="noreferrer"
               target="_blank"
             >
@@ -1139,6 +1231,7 @@ function MobileStickyCta({
         ariaLabel="Solicitar análise inicial pelo WhatsApp"
         className="w-full"
         message={message}
+        trackingLocation="cta_fixo_mobile"
         variant="primary"
       >
         Solicitar análise inicial
@@ -1149,24 +1242,26 @@ function MobileStickyCta({
 
 export function PremiumLanding() {
   return (
-    <main
-      className="min-h-screen overflow-hidden bg-paper text-slate-900"
-      id="conteudo-principal"
-    >
-      <Header />
-      <Hero />
-      <PracticeAreasSection />
-      <UrgentSection />
-      <HowItWorksSection />
-      <DifferentialsSection />
-      <AboutSection />
-      <DigitalLawSection />
-      <FormSection />
-      <FaqSection />
-      <FinalCta />
-      <Footer />
-      <MobileStickyCta />
-    </main>
+    <MotionConfig reducedMotion="user">
+      <main
+        className="min-h-screen overflow-hidden bg-paper text-slate-900"
+        id="conteudo-principal"
+      >
+        <Header />
+        <Hero />
+        <PracticeAreasSection />
+        <UrgentSection />
+        <HowItWorksSection />
+        <DifferentialsSection />
+        <AboutSection />
+        <DigitalLawSection />
+        <FormSection />
+        <FaqSection />
+        <FinalCta />
+        <Footer />
+        <MobileStickyCta />
+      </main>
+    </MotionConfig>
   );
 }
 
@@ -1202,7 +1297,11 @@ function LandingHero({ content }: { content: LandingPageContent }) {
             <PrimaryAnchor href="#contato">
               Solicitar análise inicial do caso
             </PrimaryAnchor>
-            <WhatsAppButton message={whatsappMessages.digital}>
+            <WhatsAppButton
+              message={whatsappMessages.digital}
+              trackingArea={content.eyebrow}
+              trackingLocation="hero_landing_digital"
+            >
               Falar pelo WhatsApp
             </WhatsAppButton>
           </motion.div>
@@ -1293,7 +1392,12 @@ function InitialContactSection() {
           <PrimaryAnchor href="#contato" variant="light">
             Enviar informações
           </PrimaryAnchor>
-          <WhatsAppButton message={whatsappMessages.digital} variant="light">
+          <WhatsAppButton
+            message={whatsappMessages.digital}
+            trackingArea="Direito digital e reputação online"
+            trackingLocation="analise_landing_digital"
+            variant="light"
+          >
             Falar pelo WhatsApp
           </WhatsAppButton>
         </Reveal>
@@ -1336,18 +1440,20 @@ export function LandingPageTemplate({
   content: LandingPageContent;
 }) {
   return (
-    <main
-      className="min-h-screen overflow-hidden bg-paper text-slate-900"
-      id="conteudo-principal"
-    >
-      <Header />
-      <LandingHero content={content} />
-      <LandingContent content={content} />
-      <InitialContactSection />
-      <FormSection />
-      <LegalNotice />
-      <Footer />
-      <MobileStickyCta message={whatsappMessages.digital} />
-    </main>
+    <MotionConfig reducedMotion="user">
+      <main
+        className="min-h-screen overflow-hidden bg-paper text-slate-900"
+        id="conteudo-principal"
+      >
+        <Header />
+        <LandingHero content={content} />
+        <LandingContent content={content} />
+        <InitialContactSection />
+        <FormSection />
+        <LegalNotice />
+        <Footer />
+        <MobileStickyCta message={whatsappMessages.digital} />
+      </main>
+    </MotionConfig>
   );
 }

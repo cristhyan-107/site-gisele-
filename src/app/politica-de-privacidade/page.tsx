@@ -14,6 +14,14 @@ export const metadata = {
   title: "Política de Privacidade | Dra. Gisele Gabriel",
   description:
     "Política de privacidade para o atendimento inicial realizado pelo site da Dra. Gisele Gabriel.",
+  alternates: {
+    canonical: "/politica-de-privacidade",
+  },
+  openGraph: {
+    title: "Política de Privacidade | Dra. Gisele Gabriel",
+    description:
+      "Conheça como os dados informados no site da Dra. Gisele Gabriel são tratados.",
+  },
 };
 
 const privacySections = [

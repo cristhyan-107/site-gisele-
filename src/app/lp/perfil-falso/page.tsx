@@ -5,6 +5,18 @@ export const metadata: Metadata = {
   title: "Advogada para Perfil Falso | Dra. Gisele Gabriel",
   description:
     "Atuação jurídica em casos de perfil falso, uso indevido de nome ou imagem e ataques por perfis anônimos na internet.",
+  alternates: { canonical: "/lp/perfil-falso" },
+  openGraph: {
+    title: "Advogada para Perfil Falso | Dra. Gisele Gabriel",
+    description:
+      "Atuação jurídica em casos de perfil falso, uso indevido de identidade e ataques por perfis anônimos.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Advogada para Perfil Falso | Dra. Gisele Gabriel",
+    description:
+      "Atuação jurídica em casos de perfil falso, uso indevido de identidade e ataques por perfis anônimos.",
+  },
 };
 
 const content = {

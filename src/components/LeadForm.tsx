@@ -1,6 +1,7 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import Link from "next/link";
+import { FormEvent, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import {
   AlertCircle,
@@ -24,6 +25,7 @@ const initialForm = {
   possui_provas: "",
   prejuizo: "",
   descricao_caso: "",
+  website: "",
   checkbox_consentimento: false,
 };
 
@@ -57,6 +59,7 @@ export function LeadForm() {
   const [form, setForm] = useState(initialForm);
   const [state, setState] = useState<FormState>("idle");
   const [feedbackMessage, setFeedbackMessage] = useState("");
+  const hasTrackedStart = useRef(false);
 
   const canSubmit = useMemo(
     () =>
@@ -79,6 +82,15 @@ export function LeadForm() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    const attribution = getUrlAttribution();
+
+    pushDataLayer({
+      event: "lead_form_submit_attempt",
+      origem: ORIGIN,
+      area_atuacao: form.area_atuacao || "nao_informada",
+      landing_page: attribution.landing_page,
+    });
+
     if (!canSubmit) {
       setFeedbackMessage(requiredMessage);
       setState("error");
@@ -88,7 +100,6 @@ export function LeadForm() {
     setFeedbackMessage("");
     setState("submitting");
 
-    const attribution = getUrlAttribution();
     const cidadeEstado = `${form.cidade}/${form.estado}`;
     const payload = {
       nome: form.nome,
@@ -107,6 +118,7 @@ export function LeadForm() {
       prejuizo: form.prejuizo,
       descricao_caso: form.descricao_caso,
       relato: form.descricao_caso,
+      website: form.website,
       checkbox_consentimento: form.checkbox_consentimento,
       origem: ORIGIN,
       utm_source: attribution.utm_source,
@@ -143,6 +155,14 @@ export function LeadForm() {
       pushDataLayer({
         event: "lead_form_submit",
         origem: ORIGIN,
+        area_atuacao: form.area_atuacao,
+        landing_page: attribution.landing_page,
+      });
+      pushDataLayer({
+        event: "lead_form_submit_success",
+        origem: ORIGIN,
+        area_atuacao: form.area_atuacao,
+        landing_page: attribution.landing_page,
       });
 
       setForm(initialForm);
@@ -159,15 +179,35 @@ export function LeadForm() {
       setFeedbackMessage(
         "Não foi possível enviar agora. Confira os campos obrigatórios ou tente novamente em instantes.",
       );
+      pushDataLayer({
+        event: "lead_form_submit_error",
+        origem: ORIGIN,
+        area_atuacao: form.area_atuacao || "nao_informada",
+        landing_page: attribution.landing_page,
+      });
       setState("error");
     }
+  }
+
+  function handleFormFocus() {
+    if (hasTrackedStart.current) {
+      return;
+    }
+
+    hasTrackedStart.current = true;
+    const attribution = getUrlAttribution();
+    pushDataLayer({
+      event: "lead_form_start",
+      origem: ORIGIN,
+      landing_page: attribution.landing_page,
+    });
   }
 
   return (
     <motion.form
       className="relative overflow-hidden rounded-[1.65rem] border border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(247,248,250,0.92))] p-4 shadow-[0_30px_80px_rgba(15,23,42,0.1)] ring-1 ring-white/85 backdrop-blur sm:p-6 lg:p-7"
+      onFocus={handleFormFocus}
       onSubmit={handleSubmit}
-      noValidate={false}
       whileHover={{ y: -1 }}
       transition={{ duration: 0.2 }}
     >
@@ -199,6 +239,7 @@ export function LeadForm() {
             className={fieldClass}
             name="nome"
             autoComplete="name"
+            maxLength={100}
             value={form.nome}
             onChange={(event) => setForm({ ...form, nome: event.target.value })}
           />
@@ -212,6 +253,10 @@ export function LeadForm() {
             name="whatsapp"
             autoComplete="tel"
             inputMode="tel"
+            maxLength={20}
+            minLength={10}
+            pattern="[0-9()+\\-\\s]{10,20}"
+            title="Informe um telefone com DDD."
             value={form.whatsapp}
             onChange={(event) =>
               setForm({ ...form, whatsapp: event.target.value })
@@ -228,6 +273,7 @@ export function LeadForm() {
             autoComplete="email"
             inputMode="email"
             type="email"
+            maxLength={254}
             value={form.email}
             onChange={(event) => setForm({ ...form, email: event.target.value })}
           />
@@ -241,6 +287,7 @@ export function LeadForm() {
               className={fieldClass}
               name="cidade"
               autoComplete="address-level2"
+              maxLength={100}
               value={form.cidade}
               onChange={(event) =>
                 setForm({ ...form, cidade: event.target.value })
@@ -255,6 +302,9 @@ export function LeadForm() {
               name="estado"
               autoComplete="address-level1"
               maxLength={2}
+              minLength={2}
+              pattern="[A-Za-z]{2}"
+              title="Informe a sigla do estado com duas letras."
               value={form.estado}
               onChange={(event) =>
                 setForm({ ...form, estado: event.target.value.toUpperCase() })
@@ -288,6 +338,7 @@ export function LeadForm() {
           <input
             className={fieldClass}
             name="link_publicacao"
+            maxLength={500}
             value={form.link_publicacao}
             onChange={(event) =>
               setForm({ ...form, link_publicacao: event.target.value })
@@ -301,6 +352,7 @@ export function LeadForm() {
             className={fieldClass}
             name="link_perfil"
             inputMode="url"
+            maxLength={500}
             value={form.link_perfil}
             onChange={(event) =>
               setForm({ ...form, link_perfil: event.target.value })
@@ -351,6 +403,7 @@ export function LeadForm() {
           required
           className={fieldClass}
           name="prejuizo"
+          maxLength={300}
           value={form.prejuizo}
           onChange={(event) => setForm({ ...form, prejuizo: event.target.value })}
           placeholder="Ex.: risco à saúde, perda financeira, bloqueio da atividade profissional, viagem prejudicada ou outro impacto relevante."
@@ -363,6 +416,8 @@ export function LeadForm() {
           required
           className={`${fieldClass} min-h-36 resize-y leading-7`}
           name="descricao_caso"
+          maxLength={5000}
+          minLength={20}
           rows={6}
           value={form.descricao_caso}
           onChange={(event) =>
@@ -375,6 +430,24 @@ export function LeadForm() {
         Após o envio das informações iniciais, documentos e demais comprovantes
         poderão ser solicitados pelo canal de atendimento indicado.
       </p>
+
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -left-[9999px] size-px overflow-hidden"
+      >
+        <label>
+          Não preencha este campo
+          <input
+            autoComplete="off"
+            name="website"
+            tabIndex={-1}
+            value={form.website}
+            onChange={(event) =>
+              setForm({ ...form, website: event.target.value })
+            }
+          />
+        </label>
+      </div>
 
       <label className="mt-4 grid grid-cols-[1.1rem_1fr] items-start gap-3 rounded-[1.05rem] border border-slate-200 bg-white/75 p-4 text-sm font-semibold leading-6 text-slate-600">
         <input
@@ -393,13 +466,24 @@ export function LeadForm() {
         <span>
           Declaro que as informações enviadas são verdadeiras e autorizo o
           tratamento dos dados para fins de triagem inicial do caso, conforme a
-          Política de Privacidade.
+          {" "}
+          <Link
+            className="font-bold text-navy underline decoration-gold/60 underline-offset-4 transition hover:text-gold"
+            href="/politica-de-privacidade"
+            onClick={(event) => event.stopPropagation()}
+            rel="noreferrer"
+            target="_blank"
+          >
+            Política de Privacidade
+          </Link>
+          .
         </span>
       </label>
 
       <motion.button
         className="mt-5 inline-flex min-h-14 w-full items-center justify-center gap-3 rounded-[1.05rem] bg-[linear-gradient(135deg,#07172b,var(--navy))] px-5 py-4 text-sm font-bold text-white shadow-[0_20px_42px_rgba(12,29,53,0.24),inset_0_1px_0_rgba(255,255,255,0.12)] transition hover:bg-navy-soft disabled:cursor-not-allowed disabled:opacity-55"
         disabled={state === "submitting"}
+        aria-busy={state === "submitting"}
         type="submit"
         whileHover={{ y: state !== "submitting" ? -2 : 0 }}
         whileTap={{ scale: state !== "submitting" ? 0.985 : 1 }}

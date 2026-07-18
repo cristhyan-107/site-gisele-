@@ -5,6 +5,18 @@ export const metadata: Metadata = {
   title: "Uso Indevido de Imagem na Internet | Dra. Gisele Gabriel",
   description:
     "Análise jurídica para casos de fotos, vídeos ou imagens divulgadas sem autorização na internet.",
+  alternates: { canonical: "/lp/uso-indevido-de-imagem" },
+  openGraph: {
+    title: "Uso Indevido de Imagem na Internet | Dra. Gisele Gabriel",
+    description:
+      "Análise jurídica para fotos, vídeos ou imagens divulgadas sem autorização na internet.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Uso Indevido de Imagem na Internet | Dra. Gisele Gabriel",
+    description:
+      "Análise jurídica para fotos, vídeos ou imagens divulgadas sem autorização na internet.",
+  },
 };
 
 const content = {

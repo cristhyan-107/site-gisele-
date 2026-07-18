@@ -5,6 +5,18 @@ export const metadata: Metadata = {
   title: "Advogada para Difamação na Internet | Dra. Gisele Gabriel",
   description:
     "Análise jurídica para casos de difamação na internet, ataques à reputação, publicações ofensivas e acusações falsas em redes sociais.",
+  alternates: { canonical: "/lp/difamacao" },
+  openGraph: {
+    title: "Advogada para Difamação na Internet | Dra. Gisele Gabriel",
+    description:
+      "Análise jurídica para difamação na internet, publicações ofensivas e ataques à reputação.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Advogada para Difamação na Internet | Dra. Gisele Gabriel",
+    description:
+      "Análise jurídica para difamação na internet, publicações ofensivas e ataques à reputação.",
+  },
 };
 
 const content = {
