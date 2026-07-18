@@ -35,7 +35,7 @@ export default function Home() {
     description,
     url: siteUrl,
     image: `${siteUrl}/images/dra-gisele-gabriel.jpg`,
-    telephone: "+55 11 91623-9443",
+    telephone: "+55 62 99292-8498",
     email: "gisgabri.adv@gmail.com",
     areaServed: {
       "@type": "State",

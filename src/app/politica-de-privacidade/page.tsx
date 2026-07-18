@@ -130,7 +130,7 @@ export default function PrivacyPolicyPage() {
                 </h2>
                 <p className="mt-3 text-pretty text-base leading-8 text-slate-200">
                   Para solicitações relacionadas a dados pessoais, utilize o
-                  e-mail gisgabri.adv@gmail.com ou o WhatsApp (11) 91623-9443.
+                  e-mail gisgabri.adv@gmail.com ou o WhatsApp (62) 99292-8498.
                   Esta política pode ser atualizada para refletir ajustes no
                   site, no fluxo de atendimento ou nas ferramentas utilizadas.
                 </p>

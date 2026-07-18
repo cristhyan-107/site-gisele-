@@ -59,7 +59,7 @@ test("links de WhatsApp preservam o número e mensagens específicas", async ({
 }) => {
   await page.goto("/");
 
-  const links = page.locator('a[href^="https://wa.me/5511916239443"]');
+  const links = page.locator('a[href^="https://wa.me/5562992928498"]');
   expect(await links.count()).toBeGreaterThanOrEqual(6);
 
   await expect(
