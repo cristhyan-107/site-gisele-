@@ -79,23 +79,21 @@ test("formulário envia dados válidos e registra o evento de sucesso", async ({
   });
   await page.goto("/");
 
-  await page.getByLabel("Nome", { exact: true }).fill("Pessoa Teste");
-  await page.getByLabel("WhatsApp", { exact: true }).fill("(62) 99999-9999");
-  await page.getByLabel("E-mail", { exact: true }).fill("teste@example.com");
-  await page.getByLabel("Cidade", { exact: true }).fill("Goiânia");
-  await page.getByLabel("Estado", { exact: true }).fill("GO");
+  await page.locator('input[name="nome"]').fill("Pessoa Teste");
+  await page.locator('input[name="whatsapp"]').fill("(62) 99999-9999");
+  await page.locator('input[name="email"]').fill("teste@example.com");
+  await page.locator('input[name="cidade"]').fill("Goiânia");
+  await page.locator('input[name="estado"]').fill("GO");
   await page.locator('select[name="area_atuacao"]').selectOption("Planos de saúde");
   await page.locator('select[name="conteudo_no_ar"]').selectOption("Sim");
   await page.locator('select[name="possui_provas"]').selectOption("Sim");
   await page
-    .getByLabel("Qual impacto ou risco você percebeu?", { exact: true })
+    .locator('input[name="prejuizo"]')
     .fill("Negativa recente de cobertura do tratamento indicado.");
   await page
-    .getByLabel("Descrição do caso", { exact: true })
+    .locator('textarea[name="descricao_caso"]')
     .fill("O plano recusou o procedimento indicado e enviou uma negativa por escrito.");
-  await page
-    .getByRole("checkbox", { name: /Declaro que as informações/ })
-    .check();
+  await page.locator('input[name="checkbox_consentimento"]').check();
 
   await page.getByRole("button", { name: "Solicitar análise inicial" }).click();
   await expect(page.getByText(/Informações enviadas com sucesso/)).toBeVisible();
@@ -104,8 +102,12 @@ test("formulário envia dados válidos e registra o evento de sucesso", async ({
   expect(events).toEqual(
     expect.arrayContaining([
       expect.objectContaining({
-        event: "lead_form_submit_success",
-        area_atuacao: "Planos de saúde",
+        event: "generate_lead",
+        origin: "site_google_ads",
+        area: "formulario",
+        cta: "Solicitar análise inicial",
+        localizacao_cta: "formulario_principal",
+        form_id: "analise_inicial",
       }),
     ]),
   );

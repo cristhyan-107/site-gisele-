@@ -11,6 +11,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { getUrlAttribution, ORIGIN, pushDataLayer } from "@/lib/analytics";
+import { trackGenerateLead } from "@/analytics/events";
 
 const initialForm = {
   nome: "",
@@ -87,7 +88,6 @@ export function LeadForm() {
     pushDataLayer({
       event: "lead_form_submit_attempt",
       origem: ORIGIN,
-      area_atuacao: form.area_atuacao || "nao_informada",
       landing_page: attribution.landing_page,
     });
 
@@ -152,18 +152,7 @@ export function LeadForm() {
         throw new Error("Lead request failed");
       }
 
-      pushDataLayer({
-        event: "lead_form_submit",
-        origem: ORIGIN,
-        area_atuacao: form.area_atuacao,
-        landing_page: attribution.landing_page,
-      });
-      pushDataLayer({
-        event: "lead_form_submit_success",
-        origem: ORIGIN,
-        area_atuacao: form.area_atuacao,
-        landing_page: attribution.landing_page,
-      });
+      trackGenerateLead();
 
       setForm(initialForm);
       setFeedbackMessage(successMessage);
@@ -182,7 +171,6 @@ export function LeadForm() {
       pushDataLayer({
         event: "lead_form_submit_error",
         origem: ORIGIN,
-        area_atuacao: form.area_atuacao || "nao_informada",
         landing_page: attribution.landing_page,
       });
       setState("error");
@@ -205,6 +193,7 @@ export function LeadForm() {
 
   return (
     <motion.form
+      method="POST"
       className="relative overflow-hidden rounded-[1.65rem] border border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(247,248,250,0.92))] p-4 shadow-[0_30px_80px_rgba(15,23,42,0.1)] ring-1 ring-white/85 backdrop-blur sm:p-6 lg:p-7"
       onFocus={handleFormFocus}
       onSubmit={handleSubmit}

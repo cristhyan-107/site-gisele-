@@ -1,14 +1,6 @@
 "use client";
 
-type DataLayerEvent = Record<string, unknown> & {
-  event: string;
-};
-
-declare global {
-  interface Window {
-    dataLayer?: DataLayerEvent[];
-  }
-}
+import { pushToDataLayer, DataLayerItem } from "@/analytics/dataLayer";
 
 export const ORIGIN = "site_google_ads";
 
@@ -48,17 +40,12 @@ export function getUrlAttribution() {
   };
 }
 
-export function pushDataLayer(event: DataLayerEvent) {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  window.dataLayer = window.dataLayer ?? [];
-  window.dataLayer.push(event);
+export function pushDataLayer(event: DataLayerItem) {
+  pushToDataLayer(event);
 }
 
 export function trackWhatsappClick(context: WhatsappClickContext = {}) {
-  pushDataLayer({
+  pushToDataLayer({
     event: "click_whatsapp",
     origem: ORIGIN,
     area: context.area ?? "geral",
