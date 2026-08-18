@@ -48,7 +48,7 @@ test.describe("generate_lead Analytics & Deduplication Tests", () => {
     await fillValidForm(page);
 
     await page
-      .getByRole("button", { name: "Solicitar análise inicial" })
+      .getByRole("button", { name: "Enviar informações do caso" })
       .click();
 
     await expect(
@@ -63,7 +63,10 @@ test.describe("generate_lead Analytics & Deduplication Tests", () => {
     expect(generateLeadEvents.length).toBe(1);
 
     const event = generateLeadEvents[0];
-    expect(Object.keys(event).sort()).toEqual([
+    const applicationEvent = Object.fromEntries(
+      Object.entries(event).filter(([key]) => !key.startsWith("gtm.")),
+    );
+    expect(Object.keys(applicationEvent).sort()).toEqual([
       "area",
       "cta",
       "event",
@@ -73,7 +76,7 @@ test.describe("generate_lead Analytics & Deduplication Tests", () => {
       "pagina",
     ]);
 
-    expect(event).toEqual({
+    expect(applicationEvent).toEqual({
       event: "generate_lead",
       origin: "site_google_ads",
       area: "formulario",
@@ -111,7 +114,7 @@ test.describe("generate_lead Analytics & Deduplication Tests", () => {
   test("validação inválida => 0 generate_lead emitidos", async ({ page }) => {
     await page.goto("/");
     await page
-      .getByRole("button", { name: "Solicitar análise inicial" })
+      .getByRole("button", { name: "Enviar informações do caso" })
       .click();
 
     const dataLayer = await page.evaluate(() => window.dataLayer ?? []);
@@ -141,7 +144,7 @@ test.describe("generate_lead Analytics & Deduplication Tests", () => {
     await fillValidForm(page);
 
     await page
-      .getByRole("button", { name: "Solicitar análise inicial" })
+      .getByRole("button", { name: "Enviar informações do caso" })
       .click();
 
     await expect(
@@ -168,7 +171,7 @@ test.describe("generate_lead Analytics & Deduplication Tests", () => {
     await fillValidForm(page);
 
     await page
-      .getByRole("button", { name: "Solicitar análise inicial" })
+      .getByRole("button", { name: "Enviar informações do caso" })
       .click();
 
     await expect(

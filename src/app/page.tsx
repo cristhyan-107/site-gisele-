@@ -3,9 +3,9 @@ import { PremiumLanding } from "@/components/PremiumLanding";
 import { siteUrl } from "@/lib/site";
 
 const title =
-  "Dra. Gisele Gabriel | Planos de Saúde, Seguros e Direito do Consumidor";
+  "Dra. Gisele Gabriel | Advocacia em Saúde, Seguros, Digital e Bancário";
 const description =
-  "Atendimento jurídico em casos envolvendo planos de saúde, seguros, contas bloqueadas, golpes bancários e companhias aéreas. Solicite uma análise inicial.";
+  "Advocacia em planos de saúde, seguros, contas profissionais bloqueadas e questões bancárias, com avaliação de medidas judiciais e extrajudiciais cabíveis.";
 
 export const metadata: Metadata = {
   title,
@@ -43,9 +43,9 @@ export default function Home() {
     },
     knowsAbout: [
       "Planos de saúde",
-      "Seguros",
-      "Contas bloqueadas",
-      "Golpes bancários",
+      "Seguros e seguradoras",
+      "Contas profissionais bloqueadas",
+      "Fraudes e questões bancárias",
       "Companhias aéreas",
       "Direito digital",
     ],

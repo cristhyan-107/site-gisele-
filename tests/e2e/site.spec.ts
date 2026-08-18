@@ -8,10 +8,11 @@ test("página inicial apresenta as áreas e metadados principais", async ({
   expect(response?.ok()).toBeTruthy();
   await expect(page.locator("h1")).toHaveCount(1);
   await expect(page.locator("h1")).toContainText(
-    "Orientação jurídica para situações que exigem atenção e agilidade",
+    "Advocacia para problemas com planos de saúde, seguros, bancos e contas profissionais bloqueadas",
   );
+  await expect(page.getByText("OAB/GO 57.455").first()).toBeVisible();
   await expect(page.locator("#areas-de-atuacao")).toBeVisible();
-  await expect(page.locator("#perguntas-frequentes details")).toHaveCount(7);
+  await expect(page.locator("#perguntas-frequentes details")).toHaveCount(8);
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
     "href",
     /^https?:\/\/[^/]+\/?$/,
@@ -63,8 +64,47 @@ test("links de WhatsApp preservam o número e mensagens específicas", async ({
   expect(await links.count()).toBeGreaterThanOrEqual(6);
 
   await expect(
-    page.getByRole("link", { name: /Falar sobre plano de saúde/ }),
+    page
+      .getByRole("article")
+      .filter({ has: page.getByRole("heading", { name: "Plano de saúde" }) })
+      .getByRole("link", { name: /Falar com a equipe jurídica/ }),
   ).toHaveAttribute("href", /problema%20com%20plano%20de%20sa%C3%BAde/);
+});
+
+test("CTA principal emite click_whatsapp exatamente uma vez e sem PII", async ({
+  page,
+}) => {
+  await page.goto("/");
+
+  const cta = page
+    .locator("#inicio")
+    .getByRole("link", { name: "Falar com a equipe jurídica pelo WhatsApp" });
+  await expect(cta).toBeVisible();
+
+  await cta.evaluate((element) => {
+    element.addEventListener("click", (event) => event.preventDefault(), {
+      once: true,
+    });
+    (element as HTMLAnchorElement).click();
+  });
+
+  const events = await page.evaluate(() => window.dataLayer ?? []);
+  const whatsappEvents = events.filter(
+    (item) => item.event === "click_whatsapp",
+  );
+
+  expect(whatsappEvents).toHaveLength(1);
+  expect(whatsappEvents[0]).toEqual(
+    expect.objectContaining({
+      event: "click_whatsapp",
+      cta: "Falar com a equipe jurídica",
+      localizacao_cta: "hero",
+      pagina: "/",
+    }),
+  );
+  expect(whatsappEvents[0]).not.toHaveProperty("nome");
+  expect(whatsappEvents[0]).not.toHaveProperty("email");
+  expect(whatsappEvents[0]).not.toHaveProperty("telefone");
 });
 
 test("formulário envia dados válidos e registra o evento de sucesso", async ({
@@ -95,7 +135,7 @@ test("formulário envia dados válidos e registra o evento de sucesso", async ({
     .fill("O plano recusou o procedimento indicado e enviou uma negativa por escrito.");
   await page.locator('input[name="checkbox_consentimento"]').check();
 
-  await page.getByRole("button", { name: "Solicitar análise inicial" }).click();
+  await page.getByRole("button", { name: "Enviar informações do caso" }).click();
   await expect(page.getByText(/Informações enviadas com sucesso/)).toBeVisible();
 
   const events = await page.evaluate(() => window.dataLayer ?? []);

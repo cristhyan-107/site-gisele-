@@ -41,7 +41,7 @@ type LeadApiResponse = {
 };
 
 const successMessage =
-  "Informações enviadas com sucesso. O próximo contato será feito para triagem inicial.";
+  "Informações enviadas com sucesso. A equipe entrará em contato para dar continuidade à avaliação do caso.";
 
 const requiredMessage =
   "Preencha os campos obrigatórios e aceite a Política de Privacidade para continuar.";
@@ -207,10 +207,10 @@ export function LeadForm() {
         </div>
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.22em] text-gold">
-            Análise inicial do caso
+            Informações do caso
           </p>
           <h3 className="mt-2 font-serif text-2xl font-semibold leading-tight text-navy">
-            Envie as informações para triagem
+            Envie as informações do caso
           </h3>
           <p className="mt-2 text-sm leading-6 text-slate-500">
             Não envie arquivos neste momento. Documentos, protocolos, prints e
@@ -454,7 +454,7 @@ export function LeadForm() {
         />
         <span>
           Declaro que as informações enviadas são verdadeiras e autorizo o
-          tratamento dos dados para fins de triagem inicial do caso, conforme a
+          tratamento dos dados para fins de avaliação jurídica do caso, conforme a
           {" "}
           <Link
             className="font-bold text-navy underline decoration-gold/60 underline-offset-4 transition hover:text-gold"
@@ -482,7 +482,7 @@ export function LeadForm() {
         ) : (
           <Send aria-hidden="true" size={18} />
         )}
-        {state === "submitting" ? "Enviando..." : "Solicitar análise inicial"}
+        {state === "submitting" ? "Enviando..." : "Enviar informações do caso"}
       </motion.button>
 
       <div aria-live="polite">
