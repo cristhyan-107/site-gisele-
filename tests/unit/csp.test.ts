@@ -38,5 +38,6 @@ test("Content Security Policy (CSP) security & Google platform domain coverage",
     assert.ok(cspValue.includes("https://www.googleadservices.com"), "Must contain www.googleadservices.com");
     assert.ok(cspValue.includes("https://pagead2.googlesyndication.com"), "Must contain pagead2.googlesyndication.com");
     assert.ok(cspValue.includes("https://www.google.com"), "Must contain www.google.com");
+    assert.ok(cspValue.includes("https://www.google.com.br"), "Must contain www.google.com.br");
   });
 });
